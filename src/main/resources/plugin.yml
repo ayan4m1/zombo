@@ -1,0 +1,8 @@
+author: ayan4m1
+database: false
+description: Zombie survival for an entire world
+generator: http://dinnerbone.com/minecraft/tools/pluginator/
+main: me.ayan4m1.plugins.zombo.Zombo
+name: zombo
+startup: postworld
+version: '0.1'
