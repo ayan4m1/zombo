@@ -50,6 +50,7 @@ public class ZomboPlayerInfo {
 	}
 	
 	public Integer getLevel() {
-		return ((Double)Math.floor(this.xp / 5000)).intValue() + 1;
+		Double xpLog = Math.log(this.xp);
+		return Math.max(1, ((Double)Math.ceil(xpLog * 3.619)).intValue());
 	}
 }
