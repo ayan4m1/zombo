@@ -206,6 +206,16 @@ public class Zombo extends JavaPlugin implements Listener {
 		event.setDroppedExp(0);
 		event.getDrops().clear();
 
+		//Drop crafting items
+		ArrayList<ZomboDropInfo> mobDrops = dataStore.getDropsByType(mob.getType());
+		if (mobDrops != null && !mobDrops.isEmpty()) {
+			for (ZomboDropInfo dropInfo : mobDrops) {
+				if (dropInfo.canDrop()) {
+					event.getDrops().add(dropInfo);
+				}
+			}
+		}
+
 		//Stop tracking mob
 		dataStore.removeMob(mob.getEntityId());
 	}

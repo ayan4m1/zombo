@@ -33,7 +33,7 @@ public class ZomboDropInfo extends ItemStack {
 		this.rand.setSeed(seed);
 	}
 
-	public boolean evaluate() {
+	public boolean canDrop() {
 		return (rand.nextFloat() < chance);
 	}
 }
