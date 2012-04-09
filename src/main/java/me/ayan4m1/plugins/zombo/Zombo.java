@@ -111,6 +111,8 @@ public class Zombo extends JavaPlugin implements Listener {
 		if (!dataStore.containsPlayer(player.getName())) {
 			playerInfo = new ZomboPlayerInfo();
 			playerInfo.setOnline(true);
+			//First time player, give them a starter kit
+			InventoryManager.starterKit(player);
 		} else {
 			playerInfo = dataStore.getPlayerByName(player.getName());
 			playerInfo.setOnline(true);
