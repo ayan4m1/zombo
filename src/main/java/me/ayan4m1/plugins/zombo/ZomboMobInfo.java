@@ -1,15 +1,22 @@
 package me.ayan4m1.plugins.zombo;
 
-import java.io.Serializable;
-
 import org.bukkit.entity.EntityType;
 
-public class ZomboEntityInfo implements Serializable {
+public class ZomboMobInfo {
 	private Integer xp = 0;
 	private Integer level = 1;
 	private boolean boss = false;
 	private String  name = "";
 	private EntityType type;
+
+	public ZomboMobInfo(EntityType type) {
+		this.type = type;
+	}
+
+	public ZomboMobInfo(EntityType type, Integer xp) {
+		this.type = type;
+		this.xp = xp;
+	}
 
 	public Integer getXp() {
 		return xp;

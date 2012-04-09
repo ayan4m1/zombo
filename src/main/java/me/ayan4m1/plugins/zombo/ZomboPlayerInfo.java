@@ -1,13 +1,11 @@
 package me.ayan4m1.plugins.zombo;
 
-import java.io.Serializable;
 import java.util.HashMap;
 
 import org.bukkit.entity.EntityType;
 
-public class ZomboPlayerInfo implements Serializable {
+public class ZomboPlayerInfo {
 	private Integer xp   = 0;
-	private String  name = "";
 	private boolean online = false;
 	private HashMap<EntityType, Integer> kills = new HashMap<EntityType, Integer>();
 
@@ -17,14 +15,6 @@ public class ZomboPlayerInfo implements Serializable {
 
 	public void setOnline(boolean online) {
 		this.online = online;
-	}
-
-	public String getName() {
-		return name;
-	}
-
-	public void setName(String name) {
-		this.name = name;
 	}
 
 	public Integer getXp() {
@@ -46,7 +36,7 @@ public class ZomboPlayerInfo implements Serializable {
 	public Integer getKillsForType(EntityType type) {
 		return kills.containsKey(type) ? kills.get(type) : 0;
 	}
-	
+
 	public void setKills(HashMap<EntityType, Integer> kills) {
 		this.kills = kills;
 	}
@@ -59,7 +49,7 @@ public class ZomboPlayerInfo implements Serializable {
 		}
 	}
 	
-	public Double getLevel() {
-		return Math.floor(this.xp / 5000) + 1;
+	public Integer getLevel() {
+		return ((Double)Math.floor(this.xp / 5000)).intValue() + 1;
 	}
 }
