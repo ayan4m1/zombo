@@ -166,6 +166,26 @@ public class Zombo extends JavaPlugin implements Listener {
 	}
 
 	@EventHandler
+	public void onPlayerDeath(PlayerDeathEvent event) {
+		//Ensure the death occurred in the correct world
+		if (!event.getEntity().getWorld().getName().equals(this.getWorldName())) {
+			return;
+		}
+
+		//Prevent items from dropping
+		event.getDrops().clear();
+
+		//Return inventory to the player
+		event.getEntity().getInventory().clear();
+		for (ItemStack dropItem : event.getDrops()) {
+			event.getEntity().getInventory().addItem(dropItem);
+		}
+
+		//Inform players of the death
+		messagePlayers(event.getEntity().getName() + " has died!");
+	}
+
+	@EventHandler
 	public void onEntityDeath(EntityDeathEvent event) {
 		//Ensure the death occurred in the correct world
 		if (!event.getEntity().getWorld().getName().equals(this.getWorldName())) {
