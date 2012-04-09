@@ -6,3 +6,7 @@ main: me.ayan4m1.plugins.zombo.Zombo
 name: zombo
 startup: postworld
 version: '0.1'
+commands:
+    zspawn:
+    zinfo:
+    zready:
