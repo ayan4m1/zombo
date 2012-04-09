@@ -106,7 +106,7 @@ public class Zombo extends JavaPlugin implements Listener {
 			return;
 		}
 
-		//Add player or mark existing player as online 
+		//Add player or mark existing player as online
 		ZomboPlayerInfo playerInfo;
 		if (!dataStore.containsPlayer(player.getName())) {
 			playerInfo = new ZomboPlayerInfo();
@@ -143,6 +143,7 @@ public class Zombo extends JavaPlugin implements Listener {
 	public Result onPlayerChangedWorldEvent(PlayerChangedWorldEvent event) {
 		Player player = event.getPlayer();
 
+		//Create new info object or fetch existing object
 		ZomboPlayerInfo playerInfo;
 		if (!dataStore.containsPlayer(player.getName())) {
 			playerInfo = new ZomboPlayerInfo();
@@ -150,6 +151,7 @@ public class Zombo extends JavaPlugin implements Listener {
 			playerInfo = dataStore.getPlayerByName(player.getName());
 		}
 
+		//Update online status based on event state
 		if (player.getWorld().getName().equals(this.getWorldName())) {
 			playerInfo.setOnline(true);
 			getServer().broadcastMessage(player.getName() + " joined the fight!");
@@ -158,6 +160,7 @@ public class Zombo extends JavaPlugin implements Listener {
 			getServer().broadcastMessage(player.getName() + " left the fight!");
 		}
 
+		//Update online status
 		dataStore.putPlayer(player.getName(), playerInfo);
 		return Result.ALLOW;
 	}
@@ -183,7 +186,6 @@ public class Zombo extends JavaPlugin implements Listener {
 		//Ensure the killer and entity are both in the data store
 		Player player = mob.getKiller();
 		if (!dataStore.containsPlayer(player.getName()) || !dataStore.containsMob(mob.getEntityId())) {
-			//TODO: Error handling
 			return;
 		}
 
@@ -225,6 +227,7 @@ public class Zombo extends JavaPlugin implements Listener {
 
 	public boolean onCommand(CommandSender sender, Command cmd, String cmdLabel, String[] args) {
 		if (!(sender instanceof Player)) {
+			sender.sendMessage("Must be a player to use this command.");
 			return false;
 		}
 
