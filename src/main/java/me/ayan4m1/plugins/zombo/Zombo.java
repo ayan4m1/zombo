@@ -115,8 +115,9 @@ public class Zombo extends JavaPlugin implements Listener {
 			playerInfo = dataStore.getPlayerByName(player.getName());
 			playerInfo.setOnline(true);
 		}
-		dataStore.putPlayer(player.getName(), playerInfo);
 
+		//Update player info
+		dataStore.putPlayer(player.getName(), playerInfo);
 		getServer().broadcastMessage(player.getName() + " joined the fight!");
 	}
 
@@ -236,7 +237,7 @@ public class Zombo extends JavaPlugin implements Listener {
 	}
 
 	private String getWorldName() {
-		return this.getConfig().getString("world");
+		return getConfig().getString("world");
 	}
 }
 
