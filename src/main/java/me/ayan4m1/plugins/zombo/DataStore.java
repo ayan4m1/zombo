@@ -12,7 +12,8 @@ public class DataStore {
 	private HashMap<String, ZomboPlayerInfo>  players = new HashMap<String, ZomboPlayerInfo>();
 	private HashMap<EntityType, ArrayList<ZomboDropInfo>> drops = new HashMap<EntityType, ArrayList<ZomboDropInfo>>(); 
 
-	public HashMap<Integer, ZomboMobInfo> getEntities() {
+
+	public HashMap<Integer, ZomboMobInfo> getMobs() {
 		return mobs;
 	}
 
