@@ -1,13 +1,16 @@
 package me.ayan4m1.plugins.zombo;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 
 import org.bukkit.Location;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 
 public class DataStore {
 	private HashMap<Integer, ZomboMobInfo> mobs = new HashMap<Integer, ZomboMobInfo>();
 	private HashMap<String, ZomboPlayerInfo>  players = new HashMap<String, ZomboPlayerInfo>();
+	private HashMap<EntityType, ArrayList<ZomboDropInfo>> drops = new HashMap<EntityType, ArrayList<ZomboDropInfo>>(); 
 
 	public HashMap<Integer, ZomboMobInfo> getEntities() {
 		return mobs;
@@ -17,6 +20,10 @@ public class DataStore {
 		return players;
 	}
 
+	public HashMap<EntityType, ArrayList<ZomboDropInfo>> getDrops() {
+		return drops;
+	}
+	
 	/**
 	 * Get an instance of the player map with a value type suitable for serialization
 	 * @return The map of players
@@ -49,6 +56,15 @@ public class DataStore {
 	 */
 	public ZomboPlayerInfo getPlayerByName(String playerName) {
 		return players.get(playerName);
+	}
+
+	/**
+	 * Find drops for a mob type
+	 * @param mobType
+	 * @return ArrayList<ZomboDropInfo> if found, null otherwise
+	 */
+	public ArrayList<ZomboDropInfo> getDropsByType(EntityType mobType) {
+		return drops.get(mobType);
 	}
 
 	/**
@@ -92,6 +108,29 @@ public class DataStore {
 	public void removePlayer(Integer playerId) {
 		if (players.containsKey(playerId)) {
 			players.remove(playerId);
+		}
+	}
+
+	public void putDrop(EntityType type, ZomboDropInfo info) {
+		ArrayList<ZomboDropInfo> dropList;
+		if (drops.containsKey(type)) {
+			dropList = drops.get(type);
+		} else {
+			dropList = new ArrayList<ZomboDropInfo>();
+		}
+		dropList.add(info);
+		drops.put(type, dropList);
+	}
+	
+	public void removeDrop(EntityType type, ZomboDropInfo info) {
+		if (drops.containsKey(type)) {
+			ArrayList<ZomboDropInfo> dropList = drops.get(type);
+			dropList.remove(info);
+			if (dropList.isEmpty()) {
+				drops.remove(type);
+			} else {
+				drops.put(type, dropList);
+			}
 		}
 	}
 }
