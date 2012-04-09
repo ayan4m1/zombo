@@ -231,6 +231,29 @@ public class Zombo extends JavaPlugin implements Listener {
 			return false;
 		}
 
+		if (cmd.getName().equalsIgnoreCase("zinfo")) {
+			ZomboPlayerInfo playerInfo = dataStore.getPlayerByName(player.getName());
+			player.sendMessage("Level " + playerInfo.getLevel() + " (" + playerInfo.getXp() + " XP)");
+			player.sendMessage("Next level at " + (playerInfo.getLevel() * 5000) + " XP");
+			player.sendMessage("Kill Counts");
+			for(EntityType type : EntityType.values()) {
+				//Ensure that entity type descends from Monster
+				if (type.getEntityClass() == null || !Monster.class.isAssignableFrom(type.getEntityClass())) {
+					continue;
+				}
+
+				//Ensure that count is greater than zero
+				if (playerInfo.getKillsForType(type) == 0) {
+					continue;
+				}
+
+				player.sendMessage("  " + type.getName() + ": " + playerInfo.getKillsForType(type));
+			}
+		} else if (cmd.getName().equalsIgnoreCase("zwave")) {
+			player.sendMessage("Wave " + wave);
+		} else if (cmd.getName().equalsIgnoreCase("zresetinv")) {
+			InventoryManager.starterKit(player);
+			player.sendMessage("Your inventory has been reset.");
 		}
 
 		return false;

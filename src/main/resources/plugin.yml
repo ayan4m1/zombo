@@ -9,4 +9,17 @@ version: '0.1'
 commands:
     zspawn:
     zinfo:
+        description: Shows player information and statistics
+        permission: zombo.info
     zready:
+        description: Indicates that you are ready to advance to the next wave
+        permission: zombo.ready
+    zredeem:
+        description: Exchange your XP for enchantments
+        permission: zombo.redeem
+    zresetinv:
+        description: Resets inventory to default
+        permissions: zombo.resetinv
+    zwave:
+        description: Displays the current wave
+        permission: zombo.wave
