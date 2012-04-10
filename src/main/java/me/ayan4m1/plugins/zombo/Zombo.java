@@ -222,9 +222,7 @@ public class Zombo extends JavaPlugin implements Listener {
 		//Send message(s) to players
 		mob.getKiller().sendMessage("Killed a " + mob.getType().getName() + " [+" + entityInfo.getXp() + " XP]");
 		if (!oldLevel.equals(playerInfo.getLevel())) {
-			for (Player msgPlayer : getServer().getWorld(this.getWorldName()).getPlayers()) {
-				msgPlayer.sendMessage(mob.getKiller().getName() + " is now level " + playerInfo.getLevel());
-			}
+			messagePlayers(mob.getKiller().getName() + " is now level " + playerInfo.getLevel());
 		}
 
 		//Disable vanilla drops
@@ -243,6 +241,38 @@ public class Zombo extends JavaPlugin implements Listener {
 
 		//Stop tracking mob
 		dataStore.removeMob(mob.getEntityId());
+
+		if (dataStore.getMobs().isEmpty()) {
+			if (wave == 5) {
+				//Give XP bonus to online players
+				for (String playerName : dataStore.getPlayers().keySet()) {
+					Player msgPlayer = getServer().getPlayerExact(playerName);
+					ZomboPlayerInfo msgPlayerInfo = dataStore.getPlayerByName(playerName);
+
+					if (msgPlayer == null) {
+						continue;
+					}
+
+					msgPlayerInfo.addXp(waveXpBonus);
+					msgPlayer.sendMessage("Wave complete bonus! [+" +  + waveXpBonus + " XP]");
+				}
+			}
+			if (this.isAutoAdvance()) {
+				advanceWave();
+			} else {
+				//Tell players to ready up
+				messagePlayers("Wave complete! /zready to continue.");
+			}
+		} else if (dataStore.getMobs().size() <= 3) {
+			//Tell players that the wave is almost over
+			messagePlayers(dataStore.getMobs().size() + " mobs remaining");
+		}
+	}
+
+	private void messagePlayers(String message) {
+		for (Player msgPlayer : getServer().getWorld(this.getWorldName()).getPlayers()) {
+			msgPlayer.sendMessage(message);
+		}
 	}
 
 	public boolean onCommand(CommandSender sender, Command cmd, String cmdLabel, String[] args) {
