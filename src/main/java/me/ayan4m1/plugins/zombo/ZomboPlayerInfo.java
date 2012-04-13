@@ -5,8 +5,8 @@ import java.util.HashMap;
 import org.bukkit.entity.EntityType;
 
 public class ZomboPlayerInfo {
-	private Integer xp   = 0;
-	private boolean online = false;
+	private Integer xp       = 0;
+	private boolean online   = false;
 	private HashMap<EntityType, Integer> kills = new HashMap<EntityType, Integer>();
 
 	public boolean isOnline() {
@@ -48,7 +48,7 @@ public class ZomboPlayerInfo {
 			kills.put(type, 1);
 		}
 	}
-	
+
 	public Integer getLevel() {
 		return ((Double)Math.floor(this.xp / 5000)).intValue() + 1;
 	}
