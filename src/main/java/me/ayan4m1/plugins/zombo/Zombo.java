@@ -5,8 +5,12 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Random;
 
+import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.InvalidConfigurationException;
@@ -17,9 +21,11 @@ import org.bukkit.event.Event.Result;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.yaml.snakeyaml.TypeDescription;
 import org.yaml.snakeyaml.Yaml;
@@ -29,6 +35,8 @@ public class Zombo extends JavaPlugin implements Listener {
 	private final String	  configFile   = "config.yml";
 	private final String	  dataFile	   = "data.yml";
 	private DataStore         dataStore    = new DataStore();
+	private Integer           wave         = 1;
+	private Integer			  waveXpBonus  = 5000;
 
 	public void onEnable() {
 		getServer().getPluginManager().registerEvents(this, this);
@@ -290,7 +298,7 @@ public class Zombo extends JavaPlugin implements Listener {
 			ZomboPlayerInfo playerInfo = dataStore.getPlayerByName(player.getName());
 			player.sendMessage("Level " + playerInfo.getLevel() + " (" + playerInfo.getXp() + " XP)");
 			player.sendMessage("Next level at " + (playerInfo.getLevel() * 5000) + " XP");
-			player.sendMessage("Kill Counts");
+			player.sendMessage("Kills");
 			for(EntityType type : EntityType.values()) {
 				//Ensure that entity type descends from Monster
 				if (type.getEntityClass() == null || !Monster.class.isAssignableFrom(type.getEntityClass())) {
@@ -314,8 +322,51 @@ public class Zombo extends JavaPlugin implements Listener {
 		return false;
 	}
 
+	private void advanceWave() {
+		World world = getServer().getWorld(this.getWorldName());
+		Location loc = world.getSpawnLocation();
+		Random rand = new Random();
+
+		if (wave == 5) {
+			wave = 1;
+		} else {
+			wave++;
+		}
+
+		for (int i = 0; i < (wave * 2); i++) {
+			dataStore.spawnMob(loc.add(rand.nextInt(5), 0, rand.nextInt(5)), new ZomboMobInfo(EntityType.ZOMBIE, (500 * wave)));
+		}
+
+		for (int i = 0; i < wave; i++) {
+			dataStore.spawnMob(loc.add(rand.nextInt(5), 0, rand.nextInt(5)), new ZomboMobInfo(EntityType.SPIDER, (750 * wave)));
+		}
+
+		if (wave >= 3) {
+			dataStore.spawnMob(loc.add(rand.nextInt(5), 0, rand.nextInt(5)), new ZomboMobInfo(EntityType.PIG_ZOMBIE, (1500 * wave)));			
+		}
+
+		if (wave >= 4) {
+			dataStore.spawnMob(loc.add(rand.nextInt(5), 0, rand.nextInt(5)), new ZomboMobInfo(EntityType.BLAZE, (2000 * wave)));
+			dataStore.spawnMob(loc.add(rand.nextInt(5), 0, rand.nextInt(5)), new ZomboMobInfo(EntityType.BLAZE, (2000 * wave)));
+		}
+
+		if (wave == 5) {	
+			dataStore.spawnMob(loc.add(rand.nextInt(5), 0, rand.nextInt(5)), new ZomboMobInfo(EntityType.ENDER_DRAGON, (5000 * wave)));			
+		}
+
+		if (wave == 5) {
+			messagePlayers("Final Wave Spawned!");
+		} else {
+			messagePlayers("Wave " + wave + " Spawned!");
+		}
+	}
+
 	private String getWorldName() {
 		return getConfig().getString("world");
+	}
+
+	private boolean isAutoAdvance() {
+		return getConfig().getBoolean("autoadvance");
 	}
 }
 
