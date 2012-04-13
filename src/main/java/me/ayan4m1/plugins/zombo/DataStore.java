@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 
@@ -12,6 +13,17 @@ public class DataStore {
 	private HashMap<String, ZomboPlayerInfo>  players = new HashMap<String, ZomboPlayerInfo>();
 	private HashMap<EntityType, ArrayList<ZomboDropInfo>> drops = new HashMap<EntityType, ArrayList<ZomboDropInfo>>(); 
 
+	public DataStore() {
+		ArrayList<ZomboDropInfo> zombieDrops = new ArrayList<ZomboDropInfo>();
+		zombieDrops.add(new ZomboDropInfo(Material.BONE, 0.1F, 2));
+		zombieDrops.add(new ZomboDropInfo(Material.GLOWSTONE_DUST, 0.05F, 1));
+		drops.put(EntityType.ZOMBIE, zombieDrops);
+
+		ArrayList<ZomboDropInfo> spiderDrops = new ArrayList<ZomboDropInfo>();
+		spiderDrops.add(new ZomboDropInfo(Material.SPIDER_EYE, 0.02F, 5));
+		spiderDrops.add(new ZomboDropInfo(Material.WEB, 0.2F, 1));
+		drops.put(EntityType.SPIDER, spiderDrops);
+	}
 
 	public HashMap<Integer, ZomboMobInfo> getMobs() {
 		return mobs;
