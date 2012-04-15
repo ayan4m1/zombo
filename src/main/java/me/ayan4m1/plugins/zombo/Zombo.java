@@ -68,6 +68,7 @@ public class Zombo extends JavaPlugin implements Listener {
 
 				this.getLogger().info("Loaded drops for " + drops.size() + " entity types");
 			}
+
 			if (dataFile.length() > 0) {
 				this.getLogger().info("Loading data file from " + this.dataFile);
 
@@ -90,7 +91,8 @@ public class Zombo extends JavaPlugin implements Listener {
 
 					dataStore.putPlayer(playerName, playerInfo);
 				}
-				this.getLogger().info("Loaded data for " + dataStore.getPlayers().size()  + " players, " + onlineCount + " are online now");
+
+				this.getLogger().info("Loaded data for " + players.size()  + " players, " + onlineCount + " are online now");
 			}
 		} catch (FileNotFoundException e) {
 			this.getLogger().warning("File was not found");
