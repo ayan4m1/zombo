@@ -25,6 +25,7 @@ import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.yaml.snakeyaml.TypeDescription;
@@ -198,19 +199,34 @@ public class Zombo extends JavaPlugin implements Listener {
 			return;
 		}
 
+		//Temporarily store inventory for respawn event
+		dataStore.setTempInventoryForPlayer(event.getEntity().getName(), event.getEntity().getInventory().getContents());
+
 		//Prevent items from dropping
 		event.getDrops().clear();
-
-		//Return inventory to the player
-		event.getEntity().getInventory().clear();
-		for (ItemStack dropItem : event.getDrops()) {
-			event.getEntity().getInventory().addItem(dropItem);
-		}
 
 		//Inform players of the death
 		messagePlayers(event.getEntity().getName() + " has died!");
 	}
 
+	@EventHandler
+	public void onPlayerRespawn(PlayerRespawnEvent event) {
+		//Ensure the respawn occurred in the correct world
+		if (!event.getPlayer().getWorld().getName().equals(this.getWorldName())) {
+			return;
+		}
+
+		if (!dataStore.containsPlayer(event.getPlayer().getName())) {
+			//TODO: Either this is an error or return or something
+			return;
+		}
+
+		ItemStack[] inventory = dataStore.getTempInventoryForPlayer(event.getPlayer().getName());
+		if (inventory != null) {
+			event.getPlayer().getInventory().setContents(inventory);
+		}
+	}
+	
 	@EventHandler
 	public void onEntityDeath(EntityDeathEvent event) {
 		//Ensure the death occurred in the correct world

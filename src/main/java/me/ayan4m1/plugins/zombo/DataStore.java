@@ -6,11 +6,13 @@ import java.util.HashMap;
 import org.bukkit.Location;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.inventory.ItemStack;
 
 public class DataStore {
 	private HashMap<Integer, ZomboMobInfo> mobs = new HashMap<Integer, ZomboMobInfo>();
 	private HashMap<String, ZomboPlayerInfo>  players = new HashMap<String, ZomboPlayerInfo>();
 	private HashMap<EntityType, ArrayList<ZomboDropInfo>> drops = new HashMap<EntityType, ArrayList<ZomboDropInfo>>(); 
+	private HashMap<String, ItemStack[]> tempInventories = new HashMap<String, ItemStack[]>();
 
 	public DataStore() {
 	}
@@ -21,6 +23,14 @@ public class DataStore {
 
 	public HashMap<String, ZomboPlayerInfo> getPlayers() {
 		return players;
+	}
+
+	public ItemStack[] getTempInventoryForPlayer(String playerName) {
+		return tempInventories.get(playerName);
+	}
+
+	public void setTempInventoryForPlayer(String playerName, ItemStack[] inventory) {
+		tempInventories.put(playerName, inventory);
 	}
 
 	public HashMap<EntityType, ArrayList<ZomboDropInfo>> getDrops() {
