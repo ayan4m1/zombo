@@ -388,7 +388,6 @@ public class Zombo extends JavaPlugin implements Listener {
 	private void advanceWave() {
 		World world = getServer().getWorld(this.getWorldName());
 		Location loc = world.getSpawnLocation();
-		Random rand = new Random();
 
 		if (wave == 6) {
 			wave = 1;
@@ -397,24 +396,24 @@ public class Zombo extends JavaPlugin implements Listener {
 		}
 
 		for (int i = 0; i < (wave * 2); i++) {
-			dataStore.spawnMob(loc.add(rand.nextInt(5), 0, rand.nextInt(5)), new ZomboMobInfo(EntityType.ZOMBIE, (500 * wave)));
+			dataStore.spawnMob(getNearestFreeBlock(loc), new ZomboMobInfo(EntityType.ZOMBIE, (500 * wave)));
 		}
 
 		for (int i = 0; i < wave; i++) {
-			dataStore.spawnMob(loc.add(rand.nextInt(5), 0, rand.nextInt(5)), new ZomboMobInfo(EntityType.SPIDER, (750 * wave)));
+			dataStore.spawnMob(getNearestFreeBlock(loc), new ZomboMobInfo(EntityType.SPIDER, (750 * wave)));
 		}
 
 		if (wave >= 3) {
-			dataStore.spawnMob(loc.add(rand.nextInt(5), 0, rand.nextInt(5)), new ZomboMobInfo(EntityType.PIG_ZOMBIE, (1500 * wave)));			
+			dataStore.spawnMob(getNearestFreeBlock(loc), new ZomboMobInfo(EntityType.PIG_ZOMBIE, (1500 * wave)));			
 		}
 
 		if (wave >= 4) {
-			dataStore.spawnMob(loc.add(rand.nextInt(5), 0, rand.nextInt(5)), new ZomboMobInfo(EntityType.BLAZE, (2000 * wave)));
-			dataStore.spawnMob(loc.add(rand.nextInt(5), 0, rand.nextInt(5)), new ZomboMobInfo(EntityType.BLAZE, (2000 * wave)));
+			dataStore.spawnMob(getNearestFreeBlock(loc), new ZomboMobInfo(EntityType.BLAZE, (2000 * wave)));
+			dataStore.spawnMob(getNearestFreeBlock(loc), new ZomboMobInfo(EntityType.BLAZE, (2000 * wave)));
 		}
 
-		if (wave == 5) {	
-			dataStore.spawnMob(loc.add(rand.nextInt(5), 0, rand.nextInt(5)), new ZomboMobInfo(EntityType.ENDER_DRAGON, (5000 * wave)));			
+		if (wave == 5) {
+			dataStore.spawnMob(getNearestFreeBlock(loc), new ZomboMobInfo(EntityType.ENDER_DRAGON, (5000 * wave)));			
 		}
 
 		if (wave == 5) {
@@ -422,6 +421,34 @@ public class Zombo extends JavaPlugin implements Listener {
 		} else {
 			messagePlayers("Wave " + wave + " Spawned!");
 		}
+	}
+
+	/**
+	 * Get the empty block nearest to the provided location 
+	 * @param loc A location to search nearby
+	 * @return A Location or null if no empty blocks are found in the search radius
+	 */
+	private Location getNearestFreeBlock(Location loc) {
+		if (loc.getBlock().isEmpty()) {
+			return loc;
+		}
+
+		//Check each block in our radius starting from the center
+		for(int x = 0; x <= (10); x++) {
+			for(int y = 0; y <= (10); y++) {
+				for(int z = 0; z <= (10); z++) {
+					Location testLoc = loc.add(
+							(x % 5) * ((x < 5) ? -1 : 0),
+							(y % 5) * ((y < 5) ? -1 : 0),
+							(z % 5) * ((z < 5) ? -1 : 0));
+					if (testLoc.getBlock().isEmpty()) {
+						return testLoc;
+					}
+				}
+			}
+		}
+
+		return null;
 	}
 
 	private String getWorldName() {
