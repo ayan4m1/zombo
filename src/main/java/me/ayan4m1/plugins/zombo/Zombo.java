@@ -150,6 +150,12 @@ public class Zombo extends JavaPlugin implements Listener {
 		//Update player info
 		dataStore.putPlayer(player.getName(), playerInfo);
 		getServer().broadcastMessage(player.getName() + " joined the fight!");
+
+		getLogger().info(dataStore.getOnlinePlayers() + " online players");
+		if (dataStore.getOnlinePlayers() == 1) {
+			startWaves();
+			advanceWave();
+		}
 	}
 
 	@EventHandler
@@ -373,12 +379,16 @@ public class Zombo extends JavaPlugin implements Listener {
 		return false;
 	}
 
+	private void startWaves() {
+		wave = 0;
+	}
+
 	private void advanceWave() {
 		World world = getServer().getWorld(this.getWorldName());
 		Location loc = world.getSpawnLocation();
 		Random rand = new Random();
 
-		if (wave == 5) {
+		if (wave == 6) {
 			wave = 1;
 		} else {
 			wave++;

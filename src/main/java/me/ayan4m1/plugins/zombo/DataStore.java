@@ -25,6 +25,17 @@ public class DataStore {
 		return players;
 	}
 
+	public Integer getOnlinePlayers() {
+		Integer ret = 0;
+		for(String playerName : players.keySet()) {
+			ZomboPlayerInfo info = players.get(playerName);
+			if (info.isOnline()) {
+				ret++;
+			}
+		}
+		return ret;
+	}
+
 	public ItemStack[] getTempInventoryForPlayer(String playerName) {
 		return tempInventories.get(playerName);
 	}
