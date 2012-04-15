@@ -20,6 +20,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.Event.Result;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.CreatureSpawnEvent;
+import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
@@ -224,6 +226,20 @@ public class Zombo extends JavaPlugin implements Listener {
 		ItemStack[] inventory = dataStore.getTempInventoryForPlayer(event.getPlayer().getName());
 		if (inventory != null) {
 			event.getPlayer().getInventory().setContents(inventory);
+		}
+	}
+	
+	@EventHandler
+	public void onCreatureSpawn(CreatureSpawnEvent event) {
+		//Ensure the entity is in the correct world
+		if (event.getEntity().getWorld().getName().equals(this.getWorldName())) {
+			return;
+		}
+
+		//Suppress most enemy mob spawning
+		if (event.getSpawnReason().equals(SpawnReason.NATURAL)
+			|| event.getSpawnReason().equals(SpawnReason.CHUNK_GEN)) {
+			event.setCancelled(true);
 		}
 	}
 	
