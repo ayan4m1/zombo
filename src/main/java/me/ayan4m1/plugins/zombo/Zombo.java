@@ -25,6 +25,7 @@ import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.yaml.snakeyaml.TypeDescription;
@@ -34,6 +35,7 @@ import org.yaml.snakeyaml.constructor.CustomClassLoaderConstructor;
 public class Zombo extends JavaPlugin implements Listener {
 	private final String	  configFile   = "config.yml";
 	private final String	  dataFile	   = "data.yml";
+	private final String	  dropsFile	   = "drops.yml";
 	private DataStore         dataStore    = new DataStore();
 	private Integer           wave         = 1;
 	private Integer			  waveXpBonus  = 5000;
@@ -44,20 +46,29 @@ public class Zombo extends JavaPlugin implements Listener {
 		try {
 			File configFile = new File(getDataFolder(), this.configFile);
 			File dataFile = new File(getDataFolder(), this.dataFile);
+			File dropsFile = new File(getDataFolder(), this.dropsFile);
 
 			this.getLogger().info("Loading config from " + this.configFile);
 			getConfig().load(configFile);
 
+			//This allows snakeyaml to deserialize correctly
+			CustomClassLoaderConstructor dropLoader = new CustomClassLoaderConstructor(ZomboDropInfo.class.getClassLoader());
+			CustomClassLoaderConstructor dataLoader = new CustomClassLoaderConstructor(ZomboPlayerInfo.class.getClassLoader());
+			TypeDescription typeDesc = new TypeDescription(ZomboPlayerInfo.class);
+			typeDesc.putMapPropertyType("kills", EntityType.class, Integer.class);
+			dataLoader.addTypeDescription(typeDesc);
+			
+			if (dropsFile.length() > 0) {
+				this.getLogger().info("Loading drops file from " + this.dropsFile);
+
+				HashMap<EntityType, ArrayList<ZomboDropInfo>> drops = (HashMap<EntityType, ArrayList<ZomboDropInfo>>)new Yaml(dropLoader).load(new FileReader(dropsFile));
+				dataStore.setDrops(drops);
+
+				this.getLogger().info("Loaded drops for " + drops.size() + " entity types");
+			}
 			if (dataFile.length() > 0) {
 				this.getLogger().info("Loading data file from " + this.dataFile);
 
-				//This allows snakeyaml to deserialize the class correctly
-				CustomClassLoaderConstructor dataLoader = new CustomClassLoaderConstructor(ZomboPlayerInfo.class.getClassLoader());
-				TypeDescription typeDesc = new TypeDescription(ZomboPlayerInfo.class);
-				typeDesc.putMapPropertyType("kills", EntityType.class, Integer.class);
-				dataLoader.addTypeDescription(typeDesc);
-
-				//Load saved player data from data file
 				HashMap<String, ZomboPlayerInfo> players = (HashMap<String, ZomboPlayerInfo>)new Yaml(dataLoader).load(new FileReader(dataFile));
 				dataStore.setPlayers(players);
 
@@ -90,18 +101,26 @@ public class Zombo extends JavaPlugin implements Listener {
 
 	public void onDisable() {
 		try {
-			this.getLogger().info("Saving data to " + this.dataFile);
-			FileWriter writer = new FileWriter(new File(getDataFolder(), this.dataFile));
-
 			CustomClassLoaderConstructor dataLoader = new CustomClassLoaderConstructor(ZomboPlayerInfo.class.getClassLoader());
 			TypeDescription typeDesc = new TypeDescription(ZomboPlayerInfo.class);
 			typeDesc.putMapPropertyType("kills", EntityType.class, Integer.class);
 			dataLoader.addTypeDescription(typeDesc);
 
-			//Serialize the player map
+			this.getLogger().info("Saving data to " + this.dataFile);
+			FileWriter writer = new FileWriter(new File(getDataFolder(), this.dataFile));
+
+			//Serialize the player list
 			writer.write(new Yaml(dataLoader).dump(dataStore.getPlayers()));
 			writer.close();
 
+			CustomClassLoaderConstructor dropLoader = new CustomClassLoaderConstructor(ZomboDropInfo.class.getClassLoader());
+
+			this.getLogger().info("Saving drops to " + this.dropsFile);
+			writer = new FileWriter(new File(getDataFolder(), this.dropsFile));
+
+			//Serialize the drop list
+			writer.write(new Yaml(dropLoader).dump(dataStore.getDrops()));
+			writer.close();
 		} catch (IOException e) {
 			this.getLogger().warning("IO error - " + e.getMessage());
 		}
@@ -180,19 +199,34 @@ public class Zombo extends JavaPlugin implements Listener {
 			return;
 		}
 
+		//Temporarily store inventory for respawn event
+		dataStore.setTempInventoryForPlayer(event.getEntity().getName(), event.getEntity().getInventory().getContents());
+
 		//Prevent items from dropping
 		event.getDrops().clear();
-
-		//Return inventory to the player
-		event.getEntity().getInventory().clear();
-		for (ItemStack dropItem : event.getDrops()) {
-			event.getEntity().getInventory().addItem(dropItem);
-		}
 
 		//Inform players of the death
 		messagePlayers(event.getEntity().getName() + " has died!");
 	}
 
+	@EventHandler
+	public void onPlayerRespawn(PlayerRespawnEvent event) {
+		//Ensure the respawn occurred in the correct world
+		if (!event.getPlayer().getWorld().getName().equals(this.getWorldName())) {
+			return;
+		}
+
+		if (!dataStore.containsPlayer(event.getPlayer().getName())) {
+			//TODO: Either this is an error or return or something
+			return;
+		}
+
+		ItemStack[] inventory = dataStore.getTempInventoryForPlayer(event.getPlayer().getName());
+		if (inventory != null) {
+			event.getPlayer().getInventory().setContents(inventory);
+		}
+	}
+	
 	@EventHandler
 	public void onEntityDeath(EntityDeathEvent event) {
 		//Ensure the death occurred in the correct world
@@ -239,10 +273,11 @@ public class Zombo extends JavaPlugin implements Listener {
 
 		//Drop crafting items
 		ArrayList<ZomboDropInfo> mobDrops = dataStore.getDropsByType(mob.getType());
+		Random rand = new Random();
 		if (mobDrops != null && !mobDrops.isEmpty()) {
 			for (ZomboDropInfo dropInfo : mobDrops) {
-				if (dropInfo.canDrop()) {
-					event.getDrops().add(dropInfo);
+				if (dropInfo.canDrop(rand)) {
+					event.getDrops().add(new ItemStack(dropInfo.getType(), dropInfo.getAmount()));
 				}
 			}
 		}
