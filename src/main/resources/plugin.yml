@@ -7,7 +7,6 @@ name: zombo
 startup: postworld
 version: '0.1'
 commands:
-    zspawn:
     zinfo:
         description: Shows player information and statistics
         permission: zombo.info
