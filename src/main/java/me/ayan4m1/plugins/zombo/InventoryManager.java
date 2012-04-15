@@ -6,9 +6,13 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 
 public final class InventoryManager {
+	public static final void clearInventory(Player player) {
+		player.getInventory().clear();
+	}
+
 	public static final void starterKit(Player player) {
+		InventoryManager.clearInventory(player);
 		PlayerInventory inventory = player.getInventory();
-		inventory.clear();
 		inventory.setArmorContents(new ItemStack[] {new ItemStack(Material.LEATHER_HELMET), new ItemStack(Material.LEATHER_CHESTPLATE)});
 		inventory.addItem(new ItemStack(Material.IRON_SWORD, 1));
 		inventory.addItem(new ItemStack(Material.IRON_SWORD, 1));
