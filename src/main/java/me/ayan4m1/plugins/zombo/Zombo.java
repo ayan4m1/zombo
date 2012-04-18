@@ -280,16 +280,12 @@ public class Zombo extends JavaPlugin implements Listener {
 		ZomboMobInfo entityInfo = dataStore.getMobById(mob.getEntityId());
 
 		//Update player information
-		Integer oldLevel = playerInfo.getLevel();
 		playerInfo.addKill(entityInfo.getType());
 		playerInfo.addXp(entityInfo.getXp());
 		dataStore.putPlayer(player.getName(), playerInfo);
 
-		//Send message(s) to players
+		//Send message to the player
 		mob.getKiller().sendMessage("Killed a " + mob.getType().getName() + " [+" + entityInfo.getXp() + " XP]");
-		if (!oldLevel.equals(playerInfo.getLevel())) {
-			messagePlayers(mob.getKiller().getName() + " is now level " + playerInfo.getLevel());
-		}
 
 		//Disable vanilla drops
 		event.setDroppedExp(0);
@@ -355,8 +351,7 @@ public class Zombo extends JavaPlugin implements Listener {
 
 		if (cmd.getName().equalsIgnoreCase("zinfo")) {
 			ZomboPlayerInfo playerInfo = dataStore.getPlayerByName(player.getName());
-			player.sendMessage("Level " + playerInfo.getLevel() + " (" + playerInfo.getXp() + " XP)");
-			player.sendMessage("Next level at " + (playerInfo.getLevel() * 5000) + " XP");
+			player.sendMessage("XP: " + playerInfo.getXp());
 			player.sendMessage("Kills");
 			for(EntityType type : EntityType.values()) {
 				//Ensure that entity type descends from Monster

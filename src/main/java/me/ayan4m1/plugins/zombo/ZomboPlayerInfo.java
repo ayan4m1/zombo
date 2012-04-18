@@ -48,8 +48,4 @@ public class ZomboPlayerInfo {
 			kills.put(type, 1);
 		}
 	}
-
-	public Integer getLevel() {
-		return ((Double)Math.floor(this.xp / 5000)).intValue() + 1;
-	}
 }
