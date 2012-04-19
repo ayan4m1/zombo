@@ -30,6 +30,10 @@ public class DataStore {
 		return drops;
 	}
 
+	public HashMap<Location, String> getChestLocks() {
+		return chestLocks;
+	}
+
 	public Integer getOnlinePlayers() {
 		Integer ret = 0;
 		for(String playerName : players.keySet()) {

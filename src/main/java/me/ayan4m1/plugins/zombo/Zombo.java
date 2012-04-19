@@ -10,7 +10,9 @@ import java.util.HashMap;
 import java.util.Random;
 
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.Chest;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.InvalidConfigurationException;
@@ -20,11 +22,15 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.Event.Result;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
@@ -172,6 +178,15 @@ public class Zombo extends JavaPlugin implements Listener {
 			ZomboPlayerInfo playerInfo = dataStore.getPlayerByName(player.getName());
 			playerInfo.setOnline(false);
 			dataStore.putPlayer(player.getName(), playerInfo);
+			
+			//Clear any chest locks that exist for this player
+			for(Location chestLoc : dataStore.getChestLocks().keySet()) {
+				if (dataStore.getChestLock(chestLoc) == player.getName()) {
+					dataStore.removeChestLock(chestLoc);
+					//break;
+				}
+			}
+			
 			getServer().broadcastMessage(player.getName() + " left the fight!");
 		}
 	}
@@ -337,6 +352,45 @@ public class Zombo extends JavaPlugin implements Listener {
 		} else if (dataStore.getMobs().size() <= 3) {
 			//Tell players that the wave is almost over
 			messagePlayers(dataStore.getMobs().size() + " mobs remaining");
+		}
+	}
+
+	@EventHandler
+	public void onPlayerInteract(PlayerInteractEvent event) {
+		//Ensure player is on the correct world and that they are right clicking a chest
+		if (!event.getPlayer().getWorld().getName().equals(this.getWorldName())
+			|| !event.getAction().equals(Action.RIGHT_CLICK_BLOCK)
+			|| !event.getClickedBlock().getType().equals(Material.CHEST)) {
+			return;
+		}
+
+		Player player = event.getPlayer();
+		Location chestLocation = event.getClickedBlock().getLocation();
+
+		//If the chest is currently in use by another player, lock it
+		if (dataStore.containsChestLock(chestLocation)) {
+			player.sendMessage(dataStore.getChestLock(chestLocation) + " is using this chest currently!");
+			event.setCancelled(true);
+			return;
+		}
+
+		//Lock this chest to the player
+		dataStore.setChestLock(chestLocation, player.getName());
+	}
+	
+	@EventHandler
+	public void onInventoryClose(InventoryCloseEvent event) {
+		//Ensure player is on the right world and inventory being closed is that of a chest 
+		if (!event.getPlayer().getWorld().getName().equals(this.getWorldName())
+			|| !event.getInventory().getType().equals(InventoryType.CHEST)
+			|| !(event.getInventory().getHolder() instanceof Chest)) {
+			return;
+		}
+
+		//Remove the lock this player has on the chest
+		Chest chest = (Chest)event.getInventory().getHolder();
+		if (dataStore.containsChestLock(chest.getLocation())) {
+			dataStore.removeChestLock(chest.getLocation());
 		}
 	}
 
