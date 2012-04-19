@@ -13,6 +13,7 @@ public class DataStore {
 	private HashMap<String, ZomboPlayerInfo>				players		= new HashMap<String, ZomboPlayerInfo>();
 	private HashMap<EntityType, ArrayList<ZomboDropInfo>>	drops		= new HashMap<EntityType, ArrayList<ZomboDropInfo>>(); 
 	private HashMap<String, ItemStack[]> 					inventories = new HashMap<String, ItemStack[]>();
+	private HashMap<Location, String>		 				chestLocks	= new HashMap<Location, String>();
 
 	public DataStore() {
 	}
@@ -75,6 +76,24 @@ public class DataStore {
 	 */
 	public ZomboMobInfo getMobById(Integer mobId) {
 		return mobs.get(mobId);
+	}
+
+	public boolean containsChestLock(Location chestLocation) {
+		return chestLocks.containsKey(chestLocation);
+	}
+
+	public String getChestLock(Location chestLocation) {
+		return chestLocks.get(chestLocation);
+	}
+
+	public void setChestLock(Location chestLocation, String playerName) {
+		chestLocks.put(chestLocation, playerName);
+	}
+
+	public void removeChestLock(Location chestLocation) {
+		if (chestLocks.containsKey(chestLocation)) {
+			chestLocks.remove(chestLocation);
+		}
 	}
 
 	/**
