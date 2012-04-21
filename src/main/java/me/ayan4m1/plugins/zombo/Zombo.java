@@ -16,6 +16,7 @@ import org.bukkit.block.Chest;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.InvalidConfigurationException;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Monster;
 import org.bukkit.entity.Player;
@@ -34,6 +35,7 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.yaml.snakeyaml.TypeDescription;
@@ -44,6 +46,7 @@ public class Zombo extends JavaPlugin implements Listener {
 	private final String	  configFile   = "config.yml";
 	private final String	  dataFile	   = "data.yml";
 	private final String	  dropsFile	   = "drops.yml";
+	private final String	  recipesFile  = "recipes.yml";
 	private DataStore         dataStore    = new DataStore();
 	private Integer           wave         = 1;
 	private Integer			  roundXpBonus  = 5000;
@@ -55,6 +58,7 @@ public class Zombo extends JavaPlugin implements Listener {
 			File configFile = new File(getDataFolder(), this.configFile);
 			File dataFile = new File(getDataFolder(), this.dataFile);
 			File dropsFile = new File(getDataFolder(), this.dropsFile);
+			File recipesFile = new File(getDataFolder(), this.recipesFile);
 
 			this.getLogger().info("Loading config from " + this.configFile);
 			getConfig().load(configFile);
@@ -62,6 +66,7 @@ public class Zombo extends JavaPlugin implements Listener {
 			//This allows snakeyaml to deserialize correctly
 			CustomClassLoaderConstructor dropLoader = new CustomClassLoaderConstructor(ZomboDropInfo.class.getClassLoader());
 			CustomClassLoaderConstructor dataLoader = new CustomClassLoaderConstructor(ZomboPlayerInfo.class.getClassLoader());
+			CustomClassLoaderConstructor recipeLoader = new CustomClassLoaderConstructor(ZomboCraftRecipe.class.getClassLoader());
 			TypeDescription typeDesc = new TypeDescription(ZomboPlayerInfo.class);
 			typeDesc.putMapPropertyType("kills", EntityType.class, Integer.class);
 			dataLoader.addTypeDescription(typeDesc);
@@ -100,6 +105,13 @@ public class Zombo extends JavaPlugin implements Listener {
 
 				this.getLogger().info("Loaded data for " + players.size()  + " players, " + onlineCount + " are online now");
 			}
+
+			if (recipesFile.length() > 0) {
+				this.getLogger().info("Loading craft recipes from " + this.recipesFile);
+
+				ArrayList<ZomboCraftRecipe> craftRecipes = (ArrayList<ZomboCraftRecipe>)new Yaml(recipeLoader).load(new FileReader(recipesFile));
+				dataStore.setCraftRecipes(craftRecipes);
+			}
 		} catch (FileNotFoundException e) {
 			this.getLogger().warning("File was not found");
 		} catch (IOException e) {
@@ -111,10 +123,16 @@ public class Zombo extends JavaPlugin implements Listener {
 
 	public void onDisable() {
 		try {
+			CustomClassLoaderConstructor dropLoader = new CustomClassLoaderConstructor(ZomboDropInfo.class.getClassLoader());
 			CustomClassLoaderConstructor dataLoader = new CustomClassLoaderConstructor(ZomboPlayerInfo.class.getClassLoader());
+			CustomClassLoaderConstructor recipeLoader = new CustomClassLoaderConstructor(ZomboCraftRecipe.class.getClassLoader());
 			TypeDescription typeDesc = new TypeDescription(ZomboPlayerInfo.class);
 			typeDesc.putMapPropertyType("kills", EntityType.class, Integer.class);
 			dataLoader.addTypeDescription(typeDesc);
+			typeDesc = new TypeDescription(ZomboCraftRecipe.class);
+			typeDesc.putListPropertyType("reagents", ItemStack.class);
+			typeDesc.putListPropertyType("outputEffects", Enchantment.class);
+			recipeLoader.addTypeDescription(typeDesc);
 
 			this.getLogger().info("Saving data to " + this.dataFile);
 			FileWriter writer = new FileWriter(new File(getDataFolder(), this.dataFile));
@@ -123,13 +141,18 @@ public class Zombo extends JavaPlugin implements Listener {
 			writer.write(new Yaml(dataLoader).dump(dataStore.getPlayers()));
 			writer.close();
 
-			CustomClassLoaderConstructor dropLoader = new CustomClassLoaderConstructor(ZomboDropInfo.class.getClassLoader());
-
 			this.getLogger().info("Saving drops to " + this.dropsFile);
 			writer = new FileWriter(new File(getDataFolder(), this.dropsFile));
 
 			//Serialize the drop list
 			writer.write(new Yaml(dropLoader).dump(dataStore.getDrops()));
+			writer.close();
+
+			this.getLogger().info("Saving recipes to " + this.recipesFile);
+			writer = new FileWriter(new File(getDataFolder(), this.recipesFile));
+
+			//Serialize the recipe list
+			writer.write(new Yaml(recipeLoader).dump(dataStore.getCraftRecipes()));
 			writer.close();
 		} catch (IOException e) {
 			this.getLogger().warning("IO error - " + e.getMessage());
