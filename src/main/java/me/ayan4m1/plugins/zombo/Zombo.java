@@ -40,7 +40,7 @@ public class Zombo extends JavaPlugin implements Listener {
 	private final String	  dropsFile	   = "drops.yml";
 	private DataStore         dataStore    = new DataStore();
 	private Integer           wave         = 1;
-	private Integer			  waveXpBonus  = 5000;
+	private Integer			  roundXpBonus  = 5000;
 
 	public void onEnable() {
 		getServer().getPluginManager().registerEvents(this, this);
@@ -317,8 +317,8 @@ public class Zombo extends JavaPlugin implements Listener {
 						continue;
 					}
 
-					msgPlayerInfo.addXp(waveXpBonus);
-					msgPlayer.sendMessage("Wave complete bonus! [+" +  + waveXpBonus + " XP]");
+					msgPlayerInfo.addXp(roundXpBonus);
+					msgPlayer.sendMessage("Round complete bonus! [+" +  + roundXpBonus + " XP]");
 				}
 			}
 			if (this.isAutoAdvance()) {
