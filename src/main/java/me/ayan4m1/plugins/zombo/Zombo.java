@@ -208,15 +208,17 @@ public class Zombo extends JavaPlugin implements Listener {
 		if (!event.getEntity().getWorld().getName().equals(this.getWorldName())) {
 			return;
 		}
+		
+		Player player = event.getEntity();
 
-		//Temporarily store inventory for respawn event
-		dataStore.setTempInventoryForPlayer(event.getEntity().getName(), event.getEntity().getInventory().getContents());
+		//Temporarily store inventory for the respawn event
+		dataStore.setTempInventoryForPlayer(player.getName(), player.getInventory().getContents());
 
 		//Prevent items from dropping
 		event.getDrops().clear();
 
 		//Inform players of the death
-		messagePlayers(event.getEntity().getName() + " has died!");
+		messagePlayers(player.getName() + " has died!");
 	}
 
 	@EventHandler
@@ -226,10 +228,15 @@ public class Zombo extends JavaPlugin implements Listener {
 			return;
 		}
 
-		if (!dataStore.containsPlayer(event.getPlayer().getName())) {
-			//TODO: Either this is an error or return or something
+		Player player = event.getPlayer();
+		ZomboPlayerInfo playerInfo = dataStore.getPlayerByName(player.getName());
+		if (playerInfo == null) {
 			return;
 		}
+
+		player.sendMessage("The cost of death is " + Math.floor(playerInfo.getXp() / 2) + " XP.");
+		playerInfo.setXp((int)Math.floor(playerInfo.getXp() / 2));
+		dataStore.putPlayer(player.getName(), playerInfo);
 
 		ItemStack[] inventory = dataStore.getTempInventoryForPlayer(event.getPlayer().getName());
 		if (inventory != null) {
@@ -243,7 +250,7 @@ public class Zombo extends JavaPlugin implements Listener {
 		if (event.getEntity().getWorld().getName().equals(this.getWorldName())) {
 			return;
 		}
-
+		
 		//Suppress most enemy mob spawning
 		if (event.getSpawnReason().equals(SpawnReason.NATURAL)
 			|| event.getSpawnReason().equals(SpawnReason.CHUNK_GEN)) {
