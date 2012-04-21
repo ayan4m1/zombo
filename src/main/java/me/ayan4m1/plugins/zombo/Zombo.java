@@ -155,7 +155,7 @@ public class Zombo extends JavaPlugin implements Listener {
 
 		getLogger().info(dataStore.getOnlinePlayers() + " online players");
 		if (dataStore.getOnlinePlayers() == 1) {
-			startWaves();
+			wave = 0;
 			advanceWave();
 		}
 	}
@@ -305,6 +305,7 @@ public class Zombo extends JavaPlugin implements Listener {
 		//Stop tracking mob
 		dataStore.removeMob(mob.getEntityId());
 
+		//If no mobs are left, advance to the next wave
 		if (dataStore.getMobs().isEmpty()) {
 			if (wave == 5) {
 				//Give XP bonus to online players
@@ -368,6 +369,18 @@ public class Zombo extends JavaPlugin implements Listener {
 			}
 		} else if (cmd.getName().equalsIgnoreCase("zwave")) {
 			player.sendMessage("Wave " + wave);
+		} else if (cmd.getName().equalsIgnoreCase("zready")) {
+			ZomboPlayerInfo playerInfo = dataStore.getPlayerByName(player.getName());
+			if (playerInfo == null) {
+				return false;
+			}
+
+			//Mark player as ready
+			playerInfo.setReady(true);
+			dataStore.putPlayer(player.getName(), playerInfo);
+
+			//Advance to the next wave if all players are ready
+			pollWave();
 		} else if (cmd.getName().equalsIgnoreCase("zresetinv")) {
 			InventoryManager.starterKit(player);
 			player.sendMessage("Your inventory has been reset.");
@@ -376,10 +389,32 @@ public class Zombo extends JavaPlugin implements Listener {
 		return false;
 	}
 
-	private void startWaves() {
-		wave = 0;
+	/**
+	 * Advance the wave if all players are marked as ready
+	 * @return True if all players are ready, false otherwise
+	 */
+	private boolean pollWave() {
+		//Ensure all players are ready
+		for(ZomboPlayerInfo info : dataStore.getPlayers().values()) {
+			if (!info.isReady()) {
+				return false;
+			}
+		}
+
+		//Reset the ready state for all players
+		for(String playerName : dataStore.getPlayers().keySet()) {
+			ZomboPlayerInfo info = dataStore.getPlayerByName(playerName);
+			info.setReady(false);
+			dataStore.putPlayer(playerName, info);
+		}
+
+		advanceWave();
+		return true;
 	}
 
+	/**
+	 * Advance to the next wave, spawn appropriate mobs and notify users
+	 */
 	private void advanceWave() {
 		World world = getServer().getWorld(this.getWorldName());
 		Location loc = world.getSpawnLocation();
@@ -390,12 +425,15 @@ public class Zombo extends JavaPlugin implements Listener {
 			wave++;
 		}
 
+		//Spawn mobs, more for subsequent waves
 		for (int i = 0; i < (wave * 2); i++) {
 			dataStore.spawnMob(getNearestFreeBlock(loc), new ZomboMobInfo(EntityType.ZOMBIE, (500 * wave)));
 		}
 
-		for (int i = 0; i < wave; i++) {
-			dataStore.spawnMob(getNearestFreeBlock(loc), new ZomboMobInfo(EntityType.SPIDER, (750 * wave)));
+		if (wave <= 2) {
+			for (int i = 0; i < wave; i++) {
+				dataStore.spawnMob(getNearestFreeBlock(loc), new ZomboMobInfo(EntityType.SPIDER, (750 * wave)));
+			}
 		}
 
 		if (wave >= 3) {
@@ -408,7 +446,7 @@ public class Zombo extends JavaPlugin implements Listener {
 		}
 
 		if (wave == 5) {
-			dataStore.spawnMob(getNearestFreeBlock(loc), new ZomboMobInfo(EntityType.ENDER_DRAGON, (5000 * wave)));			
+			dataStore.spawnMob(getNearestFreeBlock(loc), new ZomboMobInfo(EntityType.ENDER_DRAGON, 25000));			
 		}
 
 		if (wave == 5) {

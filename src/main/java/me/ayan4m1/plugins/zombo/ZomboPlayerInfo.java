@@ -7,6 +7,7 @@ import org.bukkit.entity.EntityType;
 public class ZomboPlayerInfo {
 	private Integer xp       = 0;
 	private boolean online   = false;
+	private boolean ready	 = false;
 	private HashMap<EntityType, Integer> kills = new HashMap<EntityType, Integer>();
 
 	public boolean isOnline() {
@@ -27,6 +28,14 @@ public class ZomboPlayerInfo {
 
 	public void addXp(Integer xp) {
 		this.xp += xp;
+	}
+
+	public boolean isReady() {
+		return ready;
+	}
+
+	public void setReady(boolean ready) {
+		this.ready = ready;
 	}
 
 	public HashMap<EntityType, Integer> getKills() {
