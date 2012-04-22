@@ -382,23 +382,42 @@ public class Zombo extends JavaPlugin implements Listener {
 	public void onPlayerInteract(PlayerInteractEvent event) {
 		//Ensure player is on the correct world and that they are right clicking a chest
 		if (!event.getPlayer().getWorld().getName().equals(this.getWorldName())
-			|| !event.getAction().equals(Action.RIGHT_CLICK_BLOCK)
 			|| !event.getClickedBlock().getType().equals(Material.CHEST)) {
 			return;
 		}
 
 		Player player = event.getPlayer();
-		Location chestLocation = event.getClickedBlock().getLocation();
 
-		//If the chest is currently in use by another player, lock it
-		if (dataStore.containsChestLock(chestLocation)) {
-			player.sendMessage(dataStore.getChestLock(chestLocation) + " is using this chest currently!");
-			event.setCancelled(true);
-			return;
+		if (event.getAction().equals(Action.LEFT_CLICK_BLOCK)) {
+			Random rand = new Random();
+			Chest chest = (Chest)event.getClickedBlock();
+			ZomboCraftRecipe recipe = dataStore.getCraftRecipeForInventory(chest.getInventory());
+			ZomboPlayerInfo playerInfo = dataStore.getPlayerByName(player.getName());
+			ItemStack craftItem = new ItemStack(recipe.getOutputType());
+
+			//Add enchantments with random level from 1-4
+			for (Enchantment enchant : recipe.getOutputEffects()) {
+				craftItem.addEnchantment(enchant, (int)Math.floor(rand.nextFloat() * 3) + 1);
+			}
+
+			player.getInventory().addItem(craftItem);
+			playerInfo.setXp(playerInfo.getXp() - recipe.getXpCost());
+			dataStore.putPlayer(player.getName(), playerInfo);
+
+			player.sendMessage("You now have " + playerInfo.getXp() + " XP");
+		} else if (event.getAction().equals(Action.RIGHT_CLICK_BLOCK)) {
+			Location chestLocation = event.getClickedBlock().getLocation();
+	
+			//If the chest is currently in use by another player, lock it
+			if (dataStore.containsChestLock(chestLocation)) {
+				player.sendMessage(dataStore.getChestLock(chestLocation) + " is using this chest currently!");
+				event.setCancelled(true);
+				return;
+			}
+	
+			//Lock this chest to the player
+			dataStore.setChestLock(chestLocation, player.getName());
 		}
-
-		//Lock this chest to the player
-		dataStore.setChestLock(chestLocation, player.getName());
 	}
 	
 	@EventHandler
