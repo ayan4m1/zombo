@@ -380,7 +380,7 @@ public class Zombo extends JavaPlugin implements Listener {
 					Player msgPlayer = getServer().getPlayerExact(playerName);
 					ZomboPlayerInfo msgPlayerInfo = dataStore.getPlayerByName(playerName);
 
-					if (msgPlayer == null) {
+					if (msgPlayer == null || msgPlayerInfo == null) {
 						continue;
 					}
 
