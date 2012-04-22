@@ -44,13 +44,15 @@ import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.CustomClassLoaderConstructor;
 
 public class Zombo extends JavaPlugin implements Listener {
-	private final String	  configFile   = "config.yml";
-	private final String	  dataFile	   = "data.yml";
-	private final String	  dropsFile	   = "drops.yml";
-	private final String	  recipesFile  = "recipes.yml";
-	private DataStore         dataStore    = new DataStore();
-	private Integer           wave         = 1;
-	private Integer			  roundXpBonus  = 5000;
+	private final String  configFile   = "config.yml";
+	private final String  dataFile	   = "data.yml";
+	private final String  dropsFile	   = "drops.yml";
+	private final String  recipesFile  = "recipes.yml";
+	private final String  wavesFile    = "waves.yml";
+	private DataStore     dataStore    = new DataStore();
+	private Integer       wave         = 1;
+	private Integer		  maxWave	   = 1;
+	private Integer 	  roundXpBonus = 5000;
 
 	public void onEnable() {
 		getServer().getPluginManager().registerEvents(this, this);
@@ -60,6 +62,7 @@ public class Zombo extends JavaPlugin implements Listener {
 			File dataFile = new File(getDataFolder(), this.dataFile);
 			File dropsFile = new File(getDataFolder(), this.dropsFile);
 			File recipesFile = new File(getDataFolder(), this.recipesFile);
+			File wavesFile = new File(getDataFolder(), this.wavesFile);
 
 			this.getLogger().info("Loading config from " + this.configFile);
 			getConfig().load(configFile);
@@ -68,6 +71,7 @@ public class Zombo extends JavaPlugin implements Listener {
 			CustomClassLoaderConstructor dropLoader = new CustomClassLoaderConstructor(ZomboDropInfo.class.getClassLoader());
 			CustomClassLoaderConstructor dataLoader = new CustomClassLoaderConstructor(ZomboPlayerInfo.class.getClassLoader());
 			CustomClassLoaderConstructor recipeLoader = new CustomClassLoaderConstructor(ZomboCraftRecipe.class.getClassLoader());
+			CustomClassLoaderConstructor waveLoader = new CustomClassLoaderConstructor(ZomboMobInfo.class.getClassLoader());
 			TypeDescription typeDesc = new TypeDescription(ZomboPlayerInfo.class);
 			typeDesc.putMapPropertyType("kills", EntityType.class, Integer.class);
 			dataLoader.addTypeDescription(typeDesc);
@@ -113,6 +117,16 @@ public class Zombo extends JavaPlugin implements Listener {
 				ArrayList<ZomboCraftRecipe> craftRecipes = (ArrayList<ZomboCraftRecipe>)new Yaml(recipeLoader).load(new FileReader(recipesFile));
 				dataStore.setCraftRecipes(craftRecipes);
 			}
+
+			if (wavesFile.length() > 0) {
+				this.getLogger().info("Loading wave spawns from " + this.wavesFile);
+
+				HashMap<Integer, ArrayList<ZomboMobInfo>> waveRecipes = (HashMap<Integer, ArrayList<ZomboMobInfo>>)new Yaml(waveLoader).load(new FileReader(wavesFile));
+				dataStore.setWaveRecipes(waveRecipes);
+
+				maxWave = waveRecipes.size();
+				this.getLogger().info("Loaded " + waveRecipes.size() +  " waves!");
+			}
 		} catch (FileNotFoundException e) {
 			this.getLogger().warning("File was not found - " + e.getMessage());
 		} catch (IOException e) {
@@ -127,6 +141,7 @@ public class Zombo extends JavaPlugin implements Listener {
 			CustomClassLoaderConstructor dropLoader = new CustomClassLoaderConstructor(ZomboDropInfo.class.getClassLoader());
 			CustomClassLoaderConstructor dataLoader = new CustomClassLoaderConstructor(ZomboPlayerInfo.class.getClassLoader());
 			CustomClassLoaderConstructor recipeLoader = new CustomClassLoaderConstructor(ZomboCraftRecipe.class.getClassLoader());
+			CustomClassLoaderConstructor waveLoader = new CustomClassLoaderConstructor(ZomboMobInfo.class.getClassLoader());
 			TypeDescription typeDesc = new TypeDescription(ZomboPlayerInfo.class);
 			typeDesc.putMapPropertyType("kills", EntityType.class, Integer.class);
 			dataLoader.addTypeDescription(typeDesc);
@@ -154,6 +169,13 @@ public class Zombo extends JavaPlugin implements Listener {
 
 			//Serialize the recipe list
 			writer.write(new Yaml(recipeLoader).dump(dataStore.getCraftRecipes()));
+			writer.close();
+
+			this.getLogger().info("Saving wave spawns to " + this.wavesFile);
+			writer = new FileWriter(new File(getDataFolder(), this.wavesFile));
+
+			//Serialize the wave spawn list
+			writer.write(new Yaml(waveLoader).dump(dataStore.getWaveRecipes()));
 			writer.close();
 		} catch (IOException e) {
 			this.getLogger().warning("IO error - " + e.getMessage());
@@ -270,6 +292,7 @@ public class Zombo extends JavaPlugin implements Listener {
 		Player player = event.getPlayer();
 		ZomboPlayerInfo playerInfo = dataStore.getPlayerByName(player.getName());
 		if (playerInfo == null) {
+			getLogger().warning("Could not find player " + player.getName() + " when handling PlayerRespawnEvent!");
 			return;
 		}
 
@@ -289,7 +312,7 @@ public class Zombo extends JavaPlugin implements Listener {
 		if (event.getEntity().getWorld().getName().equals(this.getWorldName())) {
 			return;
 		}
-		
+
 		//Suppress most enemy mob spawning
 		if (event.getSpawnReason().equals(SpawnReason.NATURAL)
 			|| event.getSpawnReason().equals(SpawnReason.CHUNK_GEN)) {
@@ -309,51 +332,50 @@ public class Zombo extends JavaPlugin implements Listener {
 			return;
 		}
 
-		//Ensure the mob had a killer
 		Monster mob = (Monster)event.getEntity();
-		if (mob.getKiller() == null) {
+
+		//Ensure the dead mob is in the data store
+		if (!dataStore.containsMob(mob.getEntityId())) {
 			return;
 		}
 
-		//Ensure the killer and entity are both in the data store
-		Player player = mob.getKiller();
-		if (!dataStore.containsPlayer(player.getName()) || !dataStore.containsMob(mob.getEntityId())) {
-			return;
+		//Only do these steps when the mob was killed by a player
+		if (mob.getKiller() != null) {
+			//Fetch information from data store
+			Player player = mob.getKiller();
+			ZomboPlayerInfo playerInfo = dataStore.getPlayerByName(player.getName());
+			ZomboMobInfo entityInfo = dataStore.getMobById(mob.getEntityId());
+
+			//Update player information
+			playerInfo.addKill(entityInfo.getType());
+			playerInfo.addXp(entityInfo.getXp() * wave);
+			dataStore.putPlayer(player.getName(), playerInfo);
+
+			//Send message to the player
+			mob.getKiller().sendMessage("Killed a " + mob.getType().getName() + " [+" + entityInfo.getXp() + " XP]");
+
+			//Drop crafting items
+			ArrayList<ZomboDropInfo> mobDrops = dataStore.getDropsByType(mob.getType());
+			Random rand = new Random();
+			if (mobDrops != null && !mobDrops.isEmpty()) {
+				for (ZomboDropInfo dropInfo : mobDrops) {
+					if (dropInfo.canDrop(rand)) {
+						event.getDrops().add(new ItemStack(dropInfo.getType(), dropInfo.getAmount()));
+					}
+				}
+			}
 		}
-
-		//Fetch information from data store
-		ZomboPlayerInfo playerInfo = dataStore.getPlayerByName(player.getName());
-		ZomboMobInfo entityInfo = dataStore.getMobById(mob.getEntityId());
-
-		//Update player information
-		playerInfo.addKill(entityInfo.getType());
-		playerInfo.addXp(entityInfo.getXp());
-		dataStore.putPlayer(player.getName(), playerInfo);
-
-		//Send message to the player
-		mob.getKiller().sendMessage("Killed a " + mob.getType().getName() + " [+" + entityInfo.getXp() + " XP]");
 
 		//Disable vanilla drops
 		event.setDroppedExp(0);
 		event.getDrops().clear();
-
-		//Drop crafting items
-		ArrayList<ZomboDropInfo> mobDrops = dataStore.getDropsByType(mob.getType());
-		Random rand = new Random();
-		if (mobDrops != null && !mobDrops.isEmpty()) {
-			for (ZomboDropInfo dropInfo : mobDrops) {
-				if (dropInfo.canDrop(rand)) {
-					event.getDrops().add(new ItemStack(dropInfo.getType(), dropInfo.getAmount()));
-				}
-			}
-		}
 
 		//Stop tracking mob
 		dataStore.removeMob(mob.getEntityId());
 
 		//If no mobs are left, advance to the next wave
 		if (dataStore.getMobs().isEmpty()) {
-			if (wave == 5) {
+			if (wave == maxWave) {
 				//Give XP bonus to online players
 				for (String playerName : dataStore.getPlayers().keySet()) {
 					Player msgPlayer = getServer().getPlayerExact(playerName);
@@ -383,6 +405,7 @@ public class Zombo extends JavaPlugin implements Listener {
 	public void onPlayerInteract(PlayerInteractEvent event) {
 		//Ensure player is on the correct world and that they are right clicking a chest
 		if (!event.getPlayer().getWorld().getName().equals(this.getWorldName())
+			|| event.getClickedBlock() == null
 			|| !event.getClickedBlock().getType().equals(Material.CHEST)) {
 			return;
 		}
@@ -553,37 +576,23 @@ public class Zombo extends JavaPlugin implements Listener {
 		World world = getServer().getWorld(this.getWorldName());
 		Location loc = world.getSpawnLocation();
 
-		if (wave == 6) {
+		if (wave == maxWave) {
 			wave = 1;
 		} else {
 			wave++;
 		}
 
-		//Spawn mobs, more for subsequent waves
-		for (int i = 0; i < (wave * 2); i++) {
-			dataStore.spawnMob(getNearestFreeBlock(loc), new ZomboMobInfo(EntityType.ZOMBIE, (500 * wave)));
+		//Spawn mobs set in wave recipe
+		if (dataStore.getWaveByIndex(wave) == null) {
+			getLogger().warning("Could not find wave recipe for wave " + wave);
+			return;
 		}
 
-		if (wave <= 2) {
-			for (int i = 0; i < wave; i++) {
-				dataStore.spawnMob(getNearestFreeBlock(loc), new ZomboMobInfo(EntityType.SPIDER, (750 * wave)));
-			}
+		for(ZomboMobInfo mobInfo : dataStore.getWaveByIndex(wave)) {
+			dataStore.spawnMob(getNearestFreeBlock(loc), mobInfo);
 		}
 
-		if (wave >= 3) {
-			dataStore.spawnMob(getNearestFreeBlock(loc), new ZomboMobInfo(EntityType.PIG_ZOMBIE, (1500 * wave)));			
-		}
-
-		if (wave >= 4) {
-			dataStore.spawnMob(getNearestFreeBlock(loc), new ZomboMobInfo(EntityType.BLAZE, (2000 * wave)));
-			dataStore.spawnMob(getNearestFreeBlock(loc), new ZomboMobInfo(EntityType.BLAZE, (2000 * wave)));
-		}
-
-		if (wave == 5) {
-			dataStore.spawnMob(getNearestFreeBlock(loc), new ZomboMobInfo(EntityType.ENDER_DRAGON, 25000));			
-		}
-
-		if (wave == 5) {
+		if (wave == maxWave) {
 			messagePlayers("Final Wave Spawned!");
 		} else {
 			messagePlayers("Wave " + wave + " Spawned!");
