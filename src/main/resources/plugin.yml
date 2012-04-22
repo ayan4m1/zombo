@@ -7,6 +7,9 @@ name: zombo
 startup: postworld
 version: '0.1'
 commands:
+    zreload:
+        description: Reloads data from files on disk
+        permission: zombo.reload
     zinfo:
         description: Shows player information and statistics
         permission: zombo.info

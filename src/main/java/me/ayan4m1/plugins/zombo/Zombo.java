@@ -57,89 +57,7 @@ public class Zombo extends JavaPlugin implements Listener {
 	public void onEnable() {
 		getServer().getPluginManager().registerEvents(this, this);
 
-		try {
-			File configFile = new File(getDataFolder(), this.configFile);
-			File dataFile = new File(getDataFolder(), this.dataFile);
-			File dropsFile = new File(getDataFolder(), this.dropsFile);
-			File recipesFile = new File(getDataFolder(), this.recipesFile);
-			File wavesFile = new File(getDataFolder(), this.wavesFile);
-
-			this.getLogger().info("Loading config from " + this.configFile);
-			getConfig().load(configFile);
-
-			//This allows snakeyaml to deserialize correctly
-			CustomClassLoaderConstructor dropLoader = new CustomClassLoaderConstructor(ZomboDropInfo.class.getClassLoader());
-			CustomClassLoaderConstructor dataLoader = new CustomClassLoaderConstructor(ZomboPlayerInfo.class.getClassLoader());
-			CustomClassLoaderConstructor recipeLoader = new CustomClassLoaderConstructor(ZomboCraftRecipe.class.getClassLoader());
-			CustomClassLoaderConstructor waveLoader = new CustomClassLoaderConstructor(ZomboMobInfo.class.getClassLoader());
-			TypeDescription playerTypeDesc = new TypeDescription(ZomboPlayerInfo.class);
-			playerTypeDesc.putMapPropertyType("kills", EntityType.class, Integer.class);
-			dataLoader.addTypeDescription(playerTypeDesc);
-			TypeDescription recipeTypeDesc = new TypeDescription(ZomboCraftRecipe.class);
-			recipeTypeDesc.putListPropertyType("reagents", ItemStack.class);
-			recipeTypeDesc.putListPropertyType("enchants", String.class);
-			recipeLoader.addTypeDescription(recipeTypeDesc);
-			
-			if (dropsFile.length() > 0) {
-				this.getLogger().info("Loading drops file from " + this.dropsFile);
-
-				HashMap<EntityType, ArrayList<ZomboDropInfo>> drops = (HashMap<EntityType, ArrayList<ZomboDropInfo>>)new Yaml(dropLoader).load(new FileReader(dropsFile));
-				dataStore.setDrops(drops);
-
-				this.getLogger().info("Loaded drops for " + drops.size() + " entity types");
-			}
-
-			if (dataFile.length() > 0) {
-				this.getLogger().info("Loading data file from " + this.dataFile);
-
-				HashMap<String, ZomboPlayerInfo> players = (HashMap<String, ZomboPlayerInfo>)new Yaml(dataLoader).load(new FileReader(dataFile));
-				dataStore.setPlayers(players);
-
-				//Set online status for currently connected players
-				Integer onlineCount = 0;
-				for (String playerName : dataStore.getPlayers().keySet()) {
-					Player player = getServer().getPlayer(playerName);
-					ZomboPlayerInfo playerInfo = dataStore.getPlayerByName(playerName);
-
-					if (player == null || !player.getWorld().getName().equals(this.getWorldName())) {
-						playerInfo.setOnline(false);
-					} else {
-						playerInfo.setOnline(true);
-						onlineCount++;
-						getServer().broadcastMessage(player.getName() + " joined the fight!");
-					}
-
-					dataStore.putPlayer(playerName, playerInfo);
-				}
-
-				this.getLogger().info("Loaded data for " + players.size()  + " players, " + onlineCount + " are online now");
-			}
-
-			if (recipesFile.length() > 0) {
-				this.getLogger().info("Loading craft recipes from " + this.recipesFile);
-
-				ArrayList<ZomboCraftRecipe> craftRecipes = (ArrayList<ZomboCraftRecipe>)new Yaml(recipeLoader).load(new FileReader(recipesFile));
-				dataStore.setCraftRecipes(craftRecipes);
-
-				this.getLogger().info("Loaded " + craftRecipes.size() + " recipes!");
-			}
-
-			if (wavesFile.length() > 0) {
-				this.getLogger().info("Loading wave spawns from " + this.wavesFile);
-
-				HashMap<Integer, ArrayList<ZomboMobInfo>> waveRecipes = (HashMap<Integer, ArrayList<ZomboMobInfo>>)new Yaml(waveLoader).load(new FileReader(wavesFile));
-				dataStore.setWaveRecipes(waveRecipes);
-
-				maxWave = waveRecipes.size();
-				this.getLogger().info("Loaded " + waveRecipes.size() +  " waves!");
-			}
-		} catch (FileNotFoundException e) {
-			this.getLogger().warning("File was not found - " + e.getMessage());
-		} catch (IOException e) {
-			this.getLogger().warning("Error reading file - " + e.getMessage());
-		} catch (InvalidConfigurationException e) {
-			this.getLogger().warning(this.configFile + " is invalid - " + e.getMessage());
-		}
+		loadData();
 	}
 
 	public void onDisable() {
@@ -529,6 +447,12 @@ public class Zombo extends JavaPlugin implements Listener {
 
 				player.sendMessage("  " + type.getName() + ": " + playerInfo.getKillsForType(type));
 			}
+		} else if (cmd.getName().equalsIgnoreCase("zreload")) {
+			if (loadData()) {
+				player.sendMessage("Reloaded data from disk!");
+			} else {
+				player.sendMessage("Error reloading data. Check server log for details.");
+			}
 		} else if (cmd.getName().equalsIgnoreCase("zwave")) {
 			player.sendMessage("Wave " + wave);
 		} else if (cmd.getName().equalsIgnoreCase("zready")) {
@@ -576,6 +500,96 @@ public class Zombo extends JavaPlugin implements Listener {
 
 		advanceWave();
 		return true;
+	}
+
+	private boolean loadData() {
+		try {
+			File configFile = new File(getDataFolder(), this.configFile);
+			File dataFile = new File(getDataFolder(), this.dataFile);
+			File dropsFile = new File(getDataFolder(), this.dropsFile);
+			File recipesFile = new File(getDataFolder(), this.recipesFile);
+			File wavesFile = new File(getDataFolder(), this.wavesFile);
+
+			this.getLogger().info("Loading config from " + this.configFile);
+			getConfig().load(configFile);
+
+			//This allows snakeyaml to deserialize correctly
+			CustomClassLoaderConstructor dropLoader = new CustomClassLoaderConstructor(ZomboDropInfo.class.getClassLoader());
+			CustomClassLoaderConstructor dataLoader = new CustomClassLoaderConstructor(ZomboPlayerInfo.class.getClassLoader());
+			CustomClassLoaderConstructor recipeLoader = new CustomClassLoaderConstructor(ZomboCraftRecipe.class.getClassLoader());
+			CustomClassLoaderConstructor waveLoader = new CustomClassLoaderConstructor(ZomboMobInfo.class.getClassLoader());
+			TypeDescription playerTypeDesc = new TypeDescription(ZomboPlayerInfo.class);
+			playerTypeDesc.putMapPropertyType("kills", EntityType.class, Integer.class);
+			dataLoader.addTypeDescription(playerTypeDesc);
+			TypeDescription recipeTypeDesc = new TypeDescription(ZomboCraftRecipe.class);
+			recipeTypeDesc.putListPropertyType("reagents", ItemStack.class);
+			recipeTypeDesc.putListPropertyType("enchants", String.class);
+			recipeLoader.addTypeDescription(recipeTypeDesc);
+			
+			if (dropsFile.length() > 0) {
+				this.getLogger().info("Loading drops file from " + this.dropsFile);
+
+				HashMap<EntityType, ArrayList<ZomboDropInfo>> drops = (HashMap<EntityType, ArrayList<ZomboDropInfo>>)new Yaml(dropLoader).load(new FileReader(dropsFile));
+				dataStore.setDrops(drops);
+
+				this.getLogger().info("Loaded drops for " + drops.size() + " entity types");
+			}
+
+			if (dataFile.length() > 0) {
+				this.getLogger().info("Loading data file from " + this.dataFile);
+
+				HashMap<String, ZomboPlayerInfo> players = (HashMap<String, ZomboPlayerInfo>)new Yaml(dataLoader).load(new FileReader(dataFile));
+				dataStore.setPlayers(players);
+
+				//Set online status for currently connected players
+				Integer onlineCount = 0;
+				for (String playerName : dataStore.getPlayers().keySet()) {
+					Player player = getServer().getPlayer(playerName);
+					ZomboPlayerInfo playerInfo = dataStore.getPlayerByName(playerName);
+
+					if (player == null || !player.getWorld().getName().equals(this.getWorldName())) {
+						playerInfo.setOnline(false);
+					} else {
+						playerInfo.setOnline(true);
+						onlineCount++;
+						getServer().broadcastMessage(player.getName() + " joined the fight!");
+					}
+
+					dataStore.putPlayer(playerName, playerInfo);
+				}
+
+				this.getLogger().info("Loaded data for " + players.size()  + " players, " + onlineCount + " are online now");
+			}
+
+			if (recipesFile.length() > 0) {
+				this.getLogger().info("Loading craft recipes from " + this.recipesFile);
+
+				ArrayList<ZomboCraftRecipe> craftRecipes = (ArrayList<ZomboCraftRecipe>)new Yaml(recipeLoader).load(new FileReader(recipesFile));
+				dataStore.setCraftRecipes(craftRecipes);
+
+				this.getLogger().info("Loaded " + craftRecipes.size() + " recipes!");
+			}
+
+			if (wavesFile.length() > 0) {
+				this.getLogger().info("Loading wave spawns from " + this.wavesFile);
+
+				HashMap<Integer, ArrayList<ZomboMobInfo>> waveRecipes = (HashMap<Integer, ArrayList<ZomboMobInfo>>)new Yaml(waveLoader).load(new FileReader(wavesFile));
+				dataStore.setWaveRecipes(waveRecipes);
+
+				maxWave = waveRecipes.size();
+				this.getLogger().info("Loaded " + waveRecipes.size() +  " waves!");
+			}
+			
+			return true;
+		} catch (FileNotFoundException e) {
+			this.getLogger().warning("File was not found - " + e.getMessage());
+		} catch (IOException e) {
+			this.getLogger().warning("Error reading file - " + e.getMessage());
+		} catch (InvalidConfigurationException e) {
+			this.getLogger().warning(this.configFile + " is invalid - " + e.getMessage());
+		}
+
+		return false;
 	}
 
 	/**
