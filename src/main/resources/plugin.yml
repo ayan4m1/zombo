@@ -16,9 +16,6 @@ commands:
     zready:
         description: Indicates that you are ready to advance to the next wave
         permission: zombo.ready
-    zredeem:
-        description: Exchange your XP for enchantments
-        permission: zombo.redeem
     zresetinv:
         description: Resets inventory to default
         permissions: zombo.resetinv
