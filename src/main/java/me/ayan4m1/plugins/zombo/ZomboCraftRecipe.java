@@ -81,6 +81,9 @@ public class ZomboCraftRecipe {
 				return false;
 			}
 		}
+		if (!inventory.contains(outputType)) {
+			return false;
+		}
 		return true;
 	}
 }
