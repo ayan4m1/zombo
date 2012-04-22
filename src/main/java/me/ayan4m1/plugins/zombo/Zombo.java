@@ -417,7 +417,7 @@ public class Zombo extends JavaPlugin implements Listener {
 
 		if (event.getAction().equals(Action.LEFT_CLICK_BLOCK)) {
 			Random rand = new Random();
-			Chest chest = (Chest)event.getClickedBlock();
+			Chest chest = (Chest)event.getClickedBlock().getState();
 			ZomboCraftRecipe recipe = dataStore.getCraftRecipeForInventory(chest.getInventory());
 			ZomboPlayerInfo playerInfo = dataStore.getPlayerByName(player.getName());
 			ItemStack craftItem = new ItemStack(recipe.getOutputType());
@@ -484,7 +484,7 @@ public class Zombo extends JavaPlugin implements Listener {
 
 		//If there are items, look for a valid craft recipe
 		for (ItemStack item : inventory.getContents()) {
-			if (item.getAmount() > 0) {
+			if (item != null && item.getAmount() > 0) {
 				player.sendMessage("Recipe: " + craftRecipe.getName());
 				player.sendMessage("Cost: " + craftRecipe.getXpCost());
 				player.sendMessage("Left click on the chest to craft.");

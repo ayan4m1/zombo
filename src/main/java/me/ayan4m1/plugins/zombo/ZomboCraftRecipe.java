@@ -77,7 +77,7 @@ public class ZomboCraftRecipe {
 
 	public boolean craftable(Inventory inventory) {
 		for(ItemStack item : reagents) {
-			if (inventory.contains(item)) {
+			if (item != null && inventory.contains(item)) {
 				return false;
 			}
 		}
