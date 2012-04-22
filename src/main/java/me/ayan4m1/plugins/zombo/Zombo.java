@@ -561,7 +561,7 @@ public class Zombo extends JavaPlugin implements Listener {
 	private boolean pollWave() {
 		//Ensure all players are ready
 		for(ZomboPlayerInfo info : dataStore.getPlayers().values()) {
-			if (!info.isReady()) {
+			if (info.isOnline() && !info.isReady()) {
 				return false;
 			}
 		}
