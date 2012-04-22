@@ -292,6 +292,7 @@ public class Zombo extends JavaPlugin implements Listener {
 		Player player = event.getPlayer();
 		ZomboPlayerInfo playerInfo = dataStore.getPlayerByName(player.getName());
 		if (playerInfo == null) {
+			getLogger().warning("Could not find player " + player.getName() + " when handling PlayerRespawnEvent!");
 			return;
 		}
 
