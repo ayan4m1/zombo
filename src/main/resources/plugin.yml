@@ -19,6 +19,9 @@ commands:
     zresetinv:
         description: Resets inventory to default
         permissions: zombo.resetinv
+    zresetwave:
+        description: Reset to first wave
+        permissions: zombo.resetwave
     zwave:
         description: Displays the current wave
         permission: zombo.wave

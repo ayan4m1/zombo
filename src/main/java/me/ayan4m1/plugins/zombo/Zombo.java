@@ -537,6 +537,9 @@ public class Zombo extends JavaPlugin implements Listener {
 
 			//Advance to the next wave if all players are ready
 			pollWave();
+		} else if (cmd.getName().equalsIgnoreCase("zresetwave")) {
+			wave = 0;
+			player.sendMessage("Wave has been reset");
 		} else if (cmd.getName().equalsIgnoreCase("zresetinv")) {
 			InventoryManager.starterKit(player);
 			player.sendMessage("Your inventory has been reset.");
