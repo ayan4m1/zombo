@@ -120,6 +120,8 @@ public class Zombo extends JavaPlugin implements Listener {
 
 				ArrayList<ZomboCraftRecipe> craftRecipes = (ArrayList<ZomboCraftRecipe>)new Yaml(recipeLoader).load(new FileReader(recipesFile));
 				dataStore.setCraftRecipes(craftRecipes);
+
+				this.getLogger().info("Loaded " + craftRecipes.size() + " recipes!");
 			}
 
 			if (wavesFile.length() > 0) {
