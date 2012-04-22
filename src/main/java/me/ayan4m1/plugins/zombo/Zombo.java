@@ -313,9 +313,8 @@ public class Zombo extends JavaPlugin implements Listener {
 			return;
 		}
 
-		//Suppress most enemy mob spawning
-		if (event.getSpawnReason().equals(SpawnReason.NATURAL)
-			|| event.getSpawnReason().equals(SpawnReason.CHUNK_GEN)) {
+		//Suppress all mobs not created by us
+		if (!event.getSpawnReason().equals(SpawnReason.CUSTOM)) {
 			event.setCancelled(true);
 		}
 	}
