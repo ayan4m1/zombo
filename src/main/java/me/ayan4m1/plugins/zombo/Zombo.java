@@ -382,6 +382,7 @@ public class Zombo extends JavaPlugin implements Listener {
 	public void onPlayerInteract(PlayerInteractEvent event) {
 		//Ensure player is on the correct world and that they are right clicking a chest
 		if (!event.getPlayer().getWorld().getName().equals(this.getWorldName())
+			|| event.getClickedBlock() == null
 			|| !event.getClickedBlock().getType().equals(Material.CHEST)) {
 			return;
 		}
