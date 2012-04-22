@@ -558,7 +558,8 @@ public class Zombo extends JavaPlugin implements Listener {
 		}
 
 		//Reset the ready state for all players
-		for(String playerName : dataStore.getPlayers().keySet()) {
+		Set<String> playerNames = dataStore.getPlayers().keySet();
+		for(String playerName : playerNames) {
 			ZomboPlayerInfo info = dataStore.getPlayerByName(playerName);
 			info.setReady(false);
 			dataStore.putPlayer(playerName, info);
