@@ -344,7 +344,8 @@ public class Zombo extends JavaPlugin implements Listener {
 
 			//Add enchantments with random level from 1-4
 			for (String enchantName : recipe.getEnchants()) {
-				craftItem.addEnchantment(Enchantment.getByName(enchantName), (int)Math.floor(rand.nextFloat() * 3) + 1);
+				Enchantment enchant = Enchantment.getByName(enchantName);
+				craftItem.addEnchantment(enchant, Math.min(enchant.getMaxLevel(), (int)Math.floor(rand.nextFloat() * 3) + 1));
 			}
 
 			player.getInventory().addItem(craftItem);
