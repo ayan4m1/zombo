@@ -44,15 +44,15 @@ import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.CustomClassLoaderConstructor;
 
 public class Zombo extends JavaPlugin implements Listener {
-	private final String	  configFile   = "config.yml";
-	private final String	  dataFile	   = "data.yml";
-	private final String	  dropsFile	   = "drops.yml";
-	private final String	  recipesFile  = "recipes.yml";
-	private DataStore         dataStore    = new DataStore();
-	private Integer           wave         = 1;
-	private Integer			  roundXpBonus  = 5000;
+	private final String  configFile   = "config.yml";
+	private final String  dataFile	   = "data.yml";
+	private final String  dropsFile	   = "drops.yml";
+	private final String  recipesFile  = "recipes.yml";
 	private final String  wavesFile    = "waves.yml";
+	private DataStore     dataStore    = new DataStore();
+	private Integer       wave         = 1;
 	private Integer		  maxWave	   = 1;
+	private Integer 	  roundXpBonus = 5000;
 
 	public void onEnable() {
 		getServer().getPluginManager().registerEvents(this, this);
