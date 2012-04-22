@@ -465,7 +465,7 @@ public class Zombo extends JavaPlugin implements Listener {
 		if (craftRecipe == null) {
 			boolean notified = false;
 			for(ItemStack item : inventory.getContents()) {
-				if (item.getAmount() > 0) {
+				if (item != null && item.getAmount() > 0) {
 					if (!notified) {
 						player.sendMessage("Not a valid recipe! Returning your items...");
 						notified = true;
