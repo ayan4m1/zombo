@@ -6,13 +6,16 @@ import java.util.HashMap;
 import org.bukkit.Location;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
 public class DataStore {
 	private HashMap<Integer, ZomboMobInfo>					mobs		= new HashMap<Integer, ZomboMobInfo>();
 	private HashMap<String, ZomboPlayerInfo>				players		= new HashMap<String, ZomboPlayerInfo>();
-	private HashMap<EntityType, ArrayList<ZomboDropInfo>>	drops		= new HashMap<EntityType, ArrayList<ZomboDropInfo>>(); 
+	private HashMap<EntityType, ArrayList<ZomboDropInfo>>	drops		= new HashMap<EntityType, ArrayList<ZomboDropInfo>>();
+	private ArrayList<ZomboCraftRecipe>						craftRecipes= new ArrayList<ZomboCraftRecipe>();
 	private HashMap<String, ItemStack[]> 					inventories = new HashMap<String, ItemStack[]>();
+	private HashMap<Location, String>		 				chestLocks	= new HashMap<Location, String>();
 
 	public DataStore() {
 	}
@@ -27,6 +30,23 @@ public class DataStore {
 
 	public HashMap<EntityType, ArrayList<ZomboDropInfo>> getDrops() {
 		return drops;
+	}
+
+	public HashMap<Location, String> getChestLocks() {
+		return chestLocks;
+	}
+
+	public ArrayList<ZomboCraftRecipe> getCraftRecipes() {
+		return craftRecipes;
+	}
+
+	public ZomboCraftRecipe getCraftRecipeForInventory(Inventory inventory) {
+		for(ZomboCraftRecipe craftRecipe : this.craftRecipes) {
+			if (craftRecipe.craftable(inventory)) {
+				return craftRecipe;
+			}
+		}
+		return null;
 	}
 
 	public Integer getOnlinePlayers() {
@@ -68,6 +88,10 @@ public class DataStore {
 		this.drops = drops;
 	}
 
+	public void setCraftRecipes(ArrayList<ZomboCraftRecipe> craftRecipes) {
+		this.craftRecipes = craftRecipes;
+	}
+
 	/**
 	 * Find a mob by Id
 	 * @param mobId
@@ -75,6 +99,24 @@ public class DataStore {
 	 */
 	public ZomboMobInfo getMobById(Integer mobId) {
 		return mobs.get(mobId);
+	}
+
+	public boolean containsChestLock(Location chestLocation) {
+		return chestLocks.containsKey(chestLocation);
+	}
+
+	public String getChestLock(Location chestLocation) {
+		return chestLocks.get(chestLocation);
+	}
+
+	public void setChestLock(Location chestLocation, String playerName) {
+		chestLocks.put(chestLocation, playerName);
+	}
+
+	public void removeChestLock(Location chestLocation) {
+		if (chestLocks.containsKey(chestLocation)) {
+			chestLocks.remove(chestLocation);
+		}
 	}
 
 	/**

@@ -1,5 +1,7 @@
 package me.ayan4m1.plugins.zombo;
 
+import java.util.HashMap;
+
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -19,5 +21,32 @@ public final class InventoryManager {
 		inventory.addItem(new ItemStack(Material.APPLE, 5));
 		inventory.addItem(new ItemStack(Material.BREAD, 5));
 		inventory.addItem(new ItemStack(Material.TORCH, 10));
+	}
+
+	public static final boolean consumeReagent(Player player, Material type, Integer amount) {
+		PlayerInventory inventory = player.getInventory();
+		if (!inventory.contains(type, amount)) {
+			return false;
+		}
+
+		HashMap<Integer, ItemStack> reagents = (HashMap<Integer, ItemStack>)inventory.all(type);
+		for(Integer itemPos : reagents.keySet()) {
+			ItemStack item = reagents.get(itemPos);
+
+			//Consume needed reagents and break or remove item and continue consumption
+			if (item.getAmount() > amount) {
+				item.setAmount(item.getAmount() - amount);
+				break;
+			} else {
+				amount -= item.getAmount();
+				inventory.remove(item);
+
+				if (amount == 0) {
+					break;
+				}
+			}
+		}
+
+		return true;
 	}
 }

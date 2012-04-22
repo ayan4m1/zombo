@@ -8,26 +8,35 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Random;
+import java.util.Set;
 
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.Chest;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.InvalidConfigurationException;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Monster;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event.Result;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.yaml.snakeyaml.TypeDescription;
@@ -38,6 +47,7 @@ public class Zombo extends JavaPlugin implements Listener {
 	private final String	  configFile   = "config.yml";
 	private final String	  dataFile	   = "data.yml";
 	private final String	  dropsFile	   = "drops.yml";
+	private final String	  recipesFile  = "recipes.yml";
 	private DataStore         dataStore    = new DataStore();
 	private Integer           wave         = 1;
 	private Integer			  roundXpBonus  = 5000;
@@ -49,6 +59,7 @@ public class Zombo extends JavaPlugin implements Listener {
 			File configFile = new File(getDataFolder(), this.configFile);
 			File dataFile = new File(getDataFolder(), this.dataFile);
 			File dropsFile = new File(getDataFolder(), this.dropsFile);
+			File recipesFile = new File(getDataFolder(), this.recipesFile);
 
 			this.getLogger().info("Loading config from " + this.configFile);
 			getConfig().load(configFile);
@@ -56,6 +67,7 @@ public class Zombo extends JavaPlugin implements Listener {
 			//This allows snakeyaml to deserialize correctly
 			CustomClassLoaderConstructor dropLoader = new CustomClassLoaderConstructor(ZomboDropInfo.class.getClassLoader());
 			CustomClassLoaderConstructor dataLoader = new CustomClassLoaderConstructor(ZomboPlayerInfo.class.getClassLoader());
+			CustomClassLoaderConstructor recipeLoader = new CustomClassLoaderConstructor(ZomboCraftRecipe.class.getClassLoader());
 			TypeDescription typeDesc = new TypeDescription(ZomboPlayerInfo.class);
 			typeDesc.putMapPropertyType("kills", EntityType.class, Integer.class);
 			dataLoader.addTypeDescription(typeDesc);
@@ -94,8 +106,15 @@ public class Zombo extends JavaPlugin implements Listener {
 
 				this.getLogger().info("Loaded data for " + players.size()  + " players, " + onlineCount + " are online now");
 			}
+
+			if (recipesFile.length() > 0) {
+				this.getLogger().info("Loading craft recipes from " + this.recipesFile);
+
+				ArrayList<ZomboCraftRecipe> craftRecipes = (ArrayList<ZomboCraftRecipe>)new Yaml(recipeLoader).load(new FileReader(recipesFile));
+				dataStore.setCraftRecipes(craftRecipes);
+			}
 		} catch (FileNotFoundException e) {
-			this.getLogger().warning("File was not found");
+			this.getLogger().warning("File was not found - " + e.getMessage());
 		} catch (IOException e) {
 			this.getLogger().warning("Error reading file - " + e.getMessage());
 		} catch (InvalidConfigurationException e) {
@@ -105,10 +124,16 @@ public class Zombo extends JavaPlugin implements Listener {
 
 	public void onDisable() {
 		try {
+			CustomClassLoaderConstructor dropLoader = new CustomClassLoaderConstructor(ZomboDropInfo.class.getClassLoader());
 			CustomClassLoaderConstructor dataLoader = new CustomClassLoaderConstructor(ZomboPlayerInfo.class.getClassLoader());
+			CustomClassLoaderConstructor recipeLoader = new CustomClassLoaderConstructor(ZomboCraftRecipe.class.getClassLoader());
 			TypeDescription typeDesc = new TypeDescription(ZomboPlayerInfo.class);
 			typeDesc.putMapPropertyType("kills", EntityType.class, Integer.class);
 			dataLoader.addTypeDescription(typeDesc);
+			typeDesc = new TypeDescription(ZomboCraftRecipe.class);
+			typeDesc.putListPropertyType("reagents", ItemStack.class);
+			typeDesc.putListPropertyType("outputEffects", Enchantment.class);
+			recipeLoader.addTypeDescription(typeDesc);
 
 			this.getLogger().info("Saving data to " + this.dataFile);
 			FileWriter writer = new FileWriter(new File(getDataFolder(), this.dataFile));
@@ -117,13 +142,18 @@ public class Zombo extends JavaPlugin implements Listener {
 			writer.write(new Yaml(dataLoader).dump(dataStore.getPlayers()));
 			writer.close();
 
-			CustomClassLoaderConstructor dropLoader = new CustomClassLoaderConstructor(ZomboDropInfo.class.getClassLoader());
-
 			this.getLogger().info("Saving drops to " + this.dropsFile);
 			writer = new FileWriter(new File(getDataFolder(), this.dropsFile));
 
 			//Serialize the drop list
 			writer.write(new Yaml(dropLoader).dump(dataStore.getDrops()));
+			writer.close();
+
+			this.getLogger().info("Saving recipes to " + this.recipesFile);
+			writer = new FileWriter(new File(getDataFolder(), this.recipesFile));
+
+			//Serialize the recipe list
+			writer.write(new Yaml(recipeLoader).dump(dataStore.getCraftRecipes()));
 			writer.close();
 		} catch (IOException e) {
 			this.getLogger().warning("IO error - " + e.getMessage());
@@ -172,6 +202,15 @@ public class Zombo extends JavaPlugin implements Listener {
 			ZomboPlayerInfo playerInfo = dataStore.getPlayerByName(player.getName());
 			playerInfo.setOnline(false);
 			dataStore.putPlayer(player.getName(), playerInfo);
+			
+			//Clear any chest locks that exist for this player
+			Set<Location> locations = dataStore.getChestLocks().keySet();
+			for(Location chestLoc : locations) {
+				if (dataStore.getChestLock(chestLoc) == player.getName()) {
+					dataStore.removeChestLock(chestLoc);
+				}
+			}
+			
 			getServer().broadcastMessage(player.getName() + " left the fight!");
 		}
 	}
@@ -337,6 +376,94 @@ public class Zombo extends JavaPlugin implements Listener {
 		} else if (dataStore.getMobs().size() <= 3) {
 			//Tell players that the wave is almost over
 			messagePlayers(dataStore.getMobs().size() + " mobs remaining");
+		}
+	}
+
+	@EventHandler
+	public void onPlayerInteract(PlayerInteractEvent event) {
+		//Ensure player is on the correct world and that they are right clicking a chest
+		if (!event.getPlayer().getWorld().getName().equals(this.getWorldName())
+			|| !event.getClickedBlock().getType().equals(Material.CHEST)) {
+			return;
+		}
+
+		Player player = event.getPlayer();
+
+		if (event.getAction().equals(Action.LEFT_CLICK_BLOCK)) {
+			Random rand = new Random();
+			Chest chest = (Chest)event.getClickedBlock();
+			ZomboCraftRecipe recipe = dataStore.getCraftRecipeForInventory(chest.getInventory());
+			ZomboPlayerInfo playerInfo = dataStore.getPlayerByName(player.getName());
+			ItemStack craftItem = new ItemStack(recipe.getOutputType());
+
+			//Add enchantments with random level from 1-4
+			for (Enchantment enchant : recipe.getOutputEffects()) {
+				craftItem.addEnchantment(enchant, (int)Math.floor(rand.nextFloat() * 3) + 1);
+			}
+
+			player.getInventory().addItem(craftItem);
+			playerInfo.setXp(playerInfo.getXp() - recipe.getXpCost());
+			dataStore.putPlayer(player.getName(), playerInfo);
+
+			player.sendMessage("You now have " + playerInfo.getXp() + " XP");
+		} else if (event.getAction().equals(Action.RIGHT_CLICK_BLOCK)) {
+			Location chestLocation = event.getClickedBlock().getLocation();
+	
+			//Notify the player of the existing lock
+			if (dataStore.containsChestLock(chestLocation)) {
+				player.sendMessage(dataStore.getChestLock(chestLocation) + " is using this chest currently!");
+				event.setCancelled(true);
+				return;
+			}
+	
+			//Lock this chest to the player
+			dataStore.setChestLock(chestLocation, player.getName());
+		}
+	}
+	
+	@EventHandler
+	public void onInventoryClose(InventoryCloseEvent event) {
+		//Ensure player is on the right world and inventory being closed is that of a chest 
+		if (!event.getPlayer().getWorld().getName().equals(this.getWorldName())
+			|| !(event.getPlayer() instanceof Player)
+			|| !event.getInventory().getType().equals(InventoryType.CHEST)
+			|| !(event.getInventory().getHolder() instanceof Chest)) {
+			return;
+		}
+
+		Player player = (Player)event.getPlayer();
+		Inventory inventory = event.getInventory();
+
+		//Remove the lock this player has on the chest
+		Chest chest = (Chest)event.getInventory().getHolder();
+		dataStore.removeChestLock(chest.getLocation());
+
+		//Tell the user that there is no valid recipe and return their items
+		ZomboCraftRecipe craftRecipe = dataStore.getCraftRecipeForInventory(event.getInventory());
+		if (craftRecipe == null) {
+			boolean notified = false;
+			for(ItemStack item : inventory.getContents()) {
+				if (item.getAmount() > 0) {
+					if (!notified) {
+						player.sendMessage("Not a valid recipe! Returning your items...");
+						notified = true;
+					}
+					ItemStack newItem = item.clone();
+					inventory.remove(item);
+					player.getInventory().addItem(newItem);					
+				}
+			}
+			return;
+		}
+
+		//If there are items, look for a valid craft recipe
+		for (ItemStack item : inventory.getContents()) {
+			if (item.getAmount() > 0) {
+				player.sendMessage("Recipe: " + craftRecipe.getName());
+				player.sendMessage("Cost: " + craftRecipe.getXpCost());
+				player.sendMessage("Left click on the chest to craft.");
+				break;
+			}
 		}
 	}
 
