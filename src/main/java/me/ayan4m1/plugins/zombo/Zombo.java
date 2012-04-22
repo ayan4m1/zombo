@@ -289,7 +289,7 @@ public class Zombo extends JavaPlugin implements Listener {
 		if (event.getEntity().getWorld().getName().equals(this.getWorldName())) {
 			return;
 		}
-		
+
 		//Suppress most enemy mob spawning
 		if (event.getSpawnReason().equals(SpawnReason.NATURAL)
 			|| event.getSpawnReason().equals(SpawnReason.CHUNK_GEN)) {
@@ -309,44 +309,43 @@ public class Zombo extends JavaPlugin implements Listener {
 			return;
 		}
 
-		//Ensure the mob had a killer
 		Monster mob = (Monster)event.getEntity();
-		if (mob.getKiller() == null) {
+
+		//Ensure the dead mob is in the data store
+		if (!dataStore.containsMob(mob.getEntityId())) {
 			return;
 		}
 
-		//Ensure the killer and entity are both in the data store
-		Player player = mob.getKiller();
-		if (!dataStore.containsPlayer(player.getName()) || !dataStore.containsMob(mob.getEntityId())) {
-			return;
+		//Only do these steps when the mob was killed by a player
+		if (mob.getKiller() != null) {
+			//Fetch information from data store
+			Player player = mob.getKiller();
+			ZomboPlayerInfo playerInfo = dataStore.getPlayerByName(player.getName());
+			ZomboMobInfo entityInfo = dataStore.getMobById(mob.getEntityId());
+
+			//Update player information
+			playerInfo.addKill(entityInfo.getType());
+			playerInfo.addXp(entityInfo.getXp() * wave);
+			dataStore.putPlayer(player.getName(), playerInfo);
+
+			//Send message to the player
+			mob.getKiller().sendMessage("Killed a " + mob.getType().getName() + " [+" + entityInfo.getXp() + " XP]");
+
+			//Drop crafting items
+			ArrayList<ZomboDropInfo> mobDrops = dataStore.getDropsByType(mob.getType());
+			Random rand = new Random();
+			if (mobDrops != null && !mobDrops.isEmpty()) {
+				for (ZomboDropInfo dropInfo : mobDrops) {
+					if (dropInfo.canDrop(rand)) {
+						event.getDrops().add(new ItemStack(dropInfo.getType(), dropInfo.getAmount()));
+					}
+				}
+			}
 		}
-
-		//Fetch information from data store
-		ZomboPlayerInfo playerInfo = dataStore.getPlayerByName(player.getName());
-		ZomboMobInfo entityInfo = dataStore.getMobById(mob.getEntityId());
-
-		//Update player information
-		playerInfo.addKill(entityInfo.getType());
-		playerInfo.addXp(entityInfo.getXp());
-		dataStore.putPlayer(player.getName(), playerInfo);
-
-		//Send message to the player
-		mob.getKiller().sendMessage("Killed a " + mob.getType().getName() + " [+" + entityInfo.getXp() + " XP]");
 
 		//Disable vanilla drops
 		event.setDroppedExp(0);
 		event.getDrops().clear();
-
-		//Drop crafting items
-		ArrayList<ZomboDropInfo> mobDrops = dataStore.getDropsByType(mob.getType());
-		Random rand = new Random();
-		if (mobDrops != null && !mobDrops.isEmpty()) {
-			for (ZomboDropInfo dropInfo : mobDrops) {
-				if (dropInfo.canDrop(rand)) {
-					event.getDrops().add(new ItemStack(dropInfo.getType(), dropInfo.getAmount()));
-				}
-			}
-		}
 
 		//Stop tracking mob
 		dataStore.removeMob(mob.getEntityId());
