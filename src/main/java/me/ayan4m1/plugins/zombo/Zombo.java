@@ -114,7 +114,7 @@ public class Zombo extends JavaPlugin implements Listener {
 				dataStore.setCraftRecipes(craftRecipes);
 			}
 		} catch (FileNotFoundException e) {
-			this.getLogger().warning("File was not found");
+			this.getLogger().warning("File was not found - " + e.getMessage());
 		} catch (IOException e) {
 			this.getLogger().warning("Error reading file - " + e.getMessage());
 		} catch (InvalidConfigurationException e) {
