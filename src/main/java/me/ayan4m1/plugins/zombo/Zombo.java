@@ -408,7 +408,7 @@ public class Zombo extends JavaPlugin implements Listener {
 		} else if (event.getAction().equals(Action.RIGHT_CLICK_BLOCK)) {
 			Location chestLocation = event.getClickedBlock().getLocation();
 	
-			//If the chest is currently in use by another player, lock it
+			//Notify the player of the existing lock
 			if (dataStore.containsChestLock(chestLocation)) {
 				player.sendMessage(dataStore.getChestLock(chestLocation) + " is using this chest currently!");
 				event.setCancelled(true);
