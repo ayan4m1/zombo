@@ -9,6 +9,9 @@ public class ZomboMobInfo {
 	private String  name = "";
 	private EntityType type;
 
+	public ZomboMobInfo() {
+	}
+
 	public ZomboMobInfo(EntityType type) {
 		this.type = type;
 	}

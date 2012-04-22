@@ -51,6 +51,8 @@ public class Zombo extends JavaPlugin implements Listener {
 	private DataStore         dataStore    = new DataStore();
 	private Integer           wave         = 1;
 	private Integer			  roundXpBonus  = 5000;
+	private final String  wavesFile    = "waves.yml";
+	private Integer		  maxWave	   = 1;
 
 	public void onEnable() {
 		getServer().getPluginManager().registerEvents(this, this);
@@ -60,6 +62,7 @@ public class Zombo extends JavaPlugin implements Listener {
 			File dataFile = new File(getDataFolder(), this.dataFile);
 			File dropsFile = new File(getDataFolder(), this.dropsFile);
 			File recipesFile = new File(getDataFolder(), this.recipesFile);
+			File wavesFile = new File(getDataFolder(), this.wavesFile);
 
 			this.getLogger().info("Loading config from " + this.configFile);
 			getConfig().load(configFile);
@@ -68,6 +71,7 @@ public class Zombo extends JavaPlugin implements Listener {
 			CustomClassLoaderConstructor dropLoader = new CustomClassLoaderConstructor(ZomboDropInfo.class.getClassLoader());
 			CustomClassLoaderConstructor dataLoader = new CustomClassLoaderConstructor(ZomboPlayerInfo.class.getClassLoader());
 			CustomClassLoaderConstructor recipeLoader = new CustomClassLoaderConstructor(ZomboCraftRecipe.class.getClassLoader());
+			CustomClassLoaderConstructor waveLoader = new CustomClassLoaderConstructor(ZomboMobInfo.class.getClassLoader());
 			TypeDescription typeDesc = new TypeDescription(ZomboPlayerInfo.class);
 			typeDesc.putMapPropertyType("kills", EntityType.class, Integer.class);
 			dataLoader.addTypeDescription(typeDesc);
@@ -113,6 +117,16 @@ public class Zombo extends JavaPlugin implements Listener {
 				ArrayList<ZomboCraftRecipe> craftRecipes = (ArrayList<ZomboCraftRecipe>)new Yaml(recipeLoader).load(new FileReader(recipesFile));
 				dataStore.setCraftRecipes(craftRecipes);
 			}
+
+			if (wavesFile.length() > 0) {
+				this.getLogger().info("Loading wave spawns from " + this.wavesFile);
+
+				HashMap<Integer, ArrayList<ZomboMobInfo>> waveRecipes = (HashMap<Integer, ArrayList<ZomboMobInfo>>)new Yaml(waveLoader).load(new FileReader(wavesFile));
+				dataStore.setWaveRecipes(waveRecipes);
+
+				maxWave = waveRecipes.size();
+				this.getLogger().info("Loaded " + waveRecipes.size() +  " waves!");
+			}
 		} catch (FileNotFoundException e) {
 			this.getLogger().warning("File was not found - " + e.getMessage());
 		} catch (IOException e) {
@@ -127,6 +141,7 @@ public class Zombo extends JavaPlugin implements Listener {
 			CustomClassLoaderConstructor dropLoader = new CustomClassLoaderConstructor(ZomboDropInfo.class.getClassLoader());
 			CustomClassLoaderConstructor dataLoader = new CustomClassLoaderConstructor(ZomboPlayerInfo.class.getClassLoader());
 			CustomClassLoaderConstructor recipeLoader = new CustomClassLoaderConstructor(ZomboCraftRecipe.class.getClassLoader());
+			CustomClassLoaderConstructor waveLoader = new CustomClassLoaderConstructor(ZomboMobInfo.class.getClassLoader());
 			TypeDescription typeDesc = new TypeDescription(ZomboPlayerInfo.class);
 			typeDesc.putMapPropertyType("kills", EntityType.class, Integer.class);
 			dataLoader.addTypeDescription(typeDesc);
@@ -154,6 +169,13 @@ public class Zombo extends JavaPlugin implements Listener {
 
 			//Serialize the recipe list
 			writer.write(new Yaml(recipeLoader).dump(dataStore.getCraftRecipes()));
+			writer.close();
+
+			this.getLogger().info("Saving wave spawns to " + this.wavesFile);
+			writer = new FileWriter(new File(getDataFolder(), this.wavesFile));
+
+			//Serialize the wave spawn list
+			writer.write(new Yaml(waveLoader).dump(dataStore.getWaveRecipes()));
 			writer.close();
 		} catch (IOException e) {
 			this.getLogger().warning("IO error - " + e.getMessage());
@@ -352,7 +374,7 @@ public class Zombo extends JavaPlugin implements Listener {
 
 		//If no mobs are left, advance to the next wave
 		if (dataStore.getMobs().isEmpty()) {
-			if (wave == 5) {
+			if (wave == maxWave) {
 				//Give XP bonus to online players
 				for (String playerName : dataStore.getPlayers().keySet()) {
 					Player msgPlayer = getServer().getPlayerExact(playerName);
@@ -553,37 +575,23 @@ public class Zombo extends JavaPlugin implements Listener {
 		World world = getServer().getWorld(this.getWorldName());
 		Location loc = world.getSpawnLocation();
 
-		if (wave == 6) {
+		if (wave == maxWave) {
 			wave = 1;
 		} else {
 			wave++;
 		}
 
-		//Spawn mobs, more for subsequent waves
-		for (int i = 0; i < (wave * 2); i++) {
-			dataStore.spawnMob(getNearestFreeBlock(loc), new ZomboMobInfo(EntityType.ZOMBIE, (500 * wave)));
+		//Spawn mobs set in wave recipe
+		if (dataStore.getWaveByIndex(wave) == null) {
+			getLogger().warning("Could not find wave recipe for wave " + wave);
+			return;
 		}
 
-		if (wave <= 2) {
-			for (int i = 0; i < wave; i++) {
-				dataStore.spawnMob(getNearestFreeBlock(loc), new ZomboMobInfo(EntityType.SPIDER, (750 * wave)));
-			}
+		for(ZomboMobInfo mobInfo : dataStore.getWaveByIndex(wave)) {
+			dataStore.spawnMob(getNearestFreeBlock(loc), mobInfo);
 		}
 
-		if (wave >= 3) {
-			dataStore.spawnMob(getNearestFreeBlock(loc), new ZomboMobInfo(EntityType.PIG_ZOMBIE, (1500 * wave)));			
-		}
-
-		if (wave >= 4) {
-			dataStore.spawnMob(getNearestFreeBlock(loc), new ZomboMobInfo(EntityType.BLAZE, (2000 * wave)));
-			dataStore.spawnMob(getNearestFreeBlock(loc), new ZomboMobInfo(EntityType.BLAZE, (2000 * wave)));
-		}
-
-		if (wave == 5) {
-			dataStore.spawnMob(getNearestFreeBlock(loc), new ZomboMobInfo(EntityType.ENDER_DRAGON, 25000));			
-		}
-
-		if (wave == 5) {
+		if (wave == maxWave) {
 			messagePlayers("Final Wave Spawned!");
 		} else {
 			messagePlayers("Wave " + wave + " Spawned!");

@@ -14,6 +14,7 @@ public class DataStore {
 	private HashMap<String, ZomboPlayerInfo>				players		= new HashMap<String, ZomboPlayerInfo>();
 	private HashMap<EntityType, ArrayList<ZomboDropInfo>>	drops		= new HashMap<EntityType, ArrayList<ZomboDropInfo>>();
 	private ArrayList<ZomboCraftRecipe>						craftRecipes= new ArrayList<ZomboCraftRecipe>();
+	private HashMap<Integer, ArrayList<ZomboMobInfo>>		waveRecipes = new HashMap<Integer, ArrayList<ZomboMobInfo>>();
 	private HashMap<String, ItemStack[]> 					inventories = new HashMap<String, ItemStack[]>();
 	private HashMap<Location, String>		 				chestLocks	= new HashMap<Location, String>();
 
@@ -38,6 +39,10 @@ public class DataStore {
 
 	public ArrayList<ZomboCraftRecipe> getCraftRecipes() {
 		return craftRecipes;
+	}
+
+	public HashMap<Integer, ArrayList<ZomboMobInfo>> getWaveRecipes() {
+		return waveRecipes;
 	}
 
 	public ZomboCraftRecipe getCraftRecipeForInventory(Inventory inventory) {
@@ -92,6 +97,10 @@ public class DataStore {
 		this.craftRecipes = craftRecipes;
 	}
 
+	public void setWaveRecipes(HashMap<Integer, ArrayList<ZomboMobInfo>> waveRecipes) {
+		this.waveRecipes = waveRecipes;
+	}
+
 	/**
 	 * Find a mob by Id
 	 * @param mobId
@@ -135,6 +144,15 @@ public class DataStore {
 	 */
 	public ArrayList<ZomboDropInfo> getDropsByType(EntityType mobType) {
 		return drops.get(mobType);
+	}
+
+	/**
+	 * Find mobs to spawn for a given wave
+	 * @param index The wave number
+	 * @return A list of ZomboMobInfo objects to spawn or null if not found
+	 */
+	public ArrayList<ZomboMobInfo> getWaveByIndex(Integer index) {
+		return waveRecipes.get(index);
 	}
 
 	/**
