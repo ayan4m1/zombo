@@ -425,15 +425,45 @@ public class Zombo extends JavaPlugin implements Listener {
 	public void onInventoryClose(InventoryCloseEvent event) {
 		//Ensure player is on the right world and inventory being closed is that of a chest 
 		if (!event.getPlayer().getWorld().getName().equals(this.getWorldName())
+			|| !(event.getPlayer() instanceof Player)
 			|| !event.getInventory().getType().equals(InventoryType.CHEST)
 			|| !(event.getInventory().getHolder() instanceof Chest)) {
 			return;
 		}
 
+		Player player = (Player)event.getPlayer();
+		Inventory inventory = event.getInventory();
+
 		//Remove the lock this player has on the chest
 		Chest chest = (Chest)event.getInventory().getHolder();
-		if (dataStore.containsChestLock(chest.getLocation())) {
-			dataStore.removeChestLock(chest.getLocation());
+		dataStore.removeChestLock(chest.getLocation());
+
+		//Tell the user that there is no valid recipe and return their items
+		ZomboCraftRecipe craftRecipe = dataStore.getCraftRecipeForInventory(event.getInventory());
+		if (craftRecipe == null) {
+			boolean notified = false;
+			for(ItemStack item : inventory.getContents()) {
+				if (item.getAmount() > 0) {
+					if (!notified) {
+						player.sendMessage("Not a valid recipe! Returning your items...");
+						notified = true;
+					}
+					ItemStack newItem = item.clone();
+					inventory.remove(item);
+					player.getInventory().addItem(newItem);					
+				}
+			}
+			return;
+		}
+
+		//If there are items, look for a valid craft recipe
+		for (ItemStack item : inventory.getContents()) {
+			if (item.getAmount() > 0) {
+				player.sendMessage("Recipe: " + craftRecipe.getName());
+				player.sendMessage("Cost: " + craftRecipe.getXpCost());
+				player.sendMessage("Left click on the chest to craft.");
+				break;
+			}
 		}
 	}
 
