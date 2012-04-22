@@ -3,16 +3,15 @@ package me.ayan4m1.plugins.zombo;
 import java.util.ArrayList;
 
 import org.bukkit.Material;
-import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
 public class ZomboCraftRecipe {
-	private ArrayList<ItemStack> 	reagents;
-	private ArrayList<Enchantment>	outputEffects;
-	private Material				outputType;
-	private String					name;
-	private Integer					xpCost;
+	private ArrayList<ItemStack> 	reagents = new ArrayList<ItemStack>();
+	private ArrayList<String>	    enchants = new ArrayList<String>();
+	private Material				outputType = Material.AIR;
+	private String					name = "";
+	private Integer					xpCost = 0;
 
 	public ArrayList<ItemStack> getReagents() {
 		return reagents;
@@ -22,12 +21,12 @@ public class ZomboCraftRecipe {
 		this.reagents = reagents;
 	}
 
-	public ArrayList<Enchantment> getOutputEffects() {
-		return outputEffects;
+	public ArrayList<String> getEnchants() {
+		return enchants;
 	}
 
-	public void setOutputEffects(ArrayList<Enchantment> outputEffects) {
-		this.outputEffects = outputEffects;
+	public void setEnchants(ArrayList<String> outputEffects) {
+		this.enchants = outputEffects;
 	}
 
 	public Material getOutputType() {
@@ -55,23 +54,25 @@ public class ZomboCraftRecipe {
 	}
 
 	public ZomboCraftRecipe() {
-		this.outputEffects = new ArrayList<Enchantment>();
+		this.outputType = Material.AIR;
+		this.enchants = new ArrayList<String>();
+		this.reagents = new ArrayList<ItemStack>();
 	}
 
 	public ZomboCraftRecipe(Material outputType, ArrayList<ItemStack> reagents) {
 		this.outputType = outputType;
-		this.outputEffects = new ArrayList<Enchantment>();
+		this.enchants = new ArrayList<String>();
 		this.reagents = reagents;
 	}
 
-	public ZomboCraftRecipe(Material outputType, ArrayList<Enchantment> outputEffects, ArrayList<ItemStack> reagents) {
+	public ZomboCraftRecipe(Material outputType, ArrayList<String> enchants, ArrayList<ItemStack> reagents) {
 		this.outputType = outputType;
-		this.outputEffects = outputEffects;
+		this.enchants = enchants;
 		this.reagents = reagents;
 	}
 
-	public void addOutputEffect(Enchantment enchantment) {
-		this.outputEffects.add(enchantment);
+	public void addEnchant(String enchantmentName) {
+		this.enchants.add(enchantmentName);
 	}
 
 	public boolean craftable(Inventory inventory) {

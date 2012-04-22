@@ -72,9 +72,13 @@ public class Zombo extends JavaPlugin implements Listener {
 			CustomClassLoaderConstructor dataLoader = new CustomClassLoaderConstructor(ZomboPlayerInfo.class.getClassLoader());
 			CustomClassLoaderConstructor recipeLoader = new CustomClassLoaderConstructor(ZomboCraftRecipe.class.getClassLoader());
 			CustomClassLoaderConstructor waveLoader = new CustomClassLoaderConstructor(ZomboMobInfo.class.getClassLoader());
-			TypeDescription typeDesc = new TypeDescription(ZomboPlayerInfo.class);
-			typeDesc.putMapPropertyType("kills", EntityType.class, Integer.class);
-			dataLoader.addTypeDescription(typeDesc);
+			TypeDescription playerTypeDesc = new TypeDescription(ZomboPlayerInfo.class);
+			playerTypeDesc.putMapPropertyType("kills", EntityType.class, Integer.class);
+			dataLoader.addTypeDescription(playerTypeDesc);
+			TypeDescription recipeTypeDesc = new TypeDescription(ZomboCraftRecipe.class);
+			recipeTypeDesc.putListPropertyType("reagents", ItemStack.class);
+			recipeTypeDesc.putListPropertyType("enchants", String.class);
+			recipeLoader.addTypeDescription(recipeTypeDesc);
 			
 			if (dropsFile.length() > 0) {
 				this.getLogger().info("Loading drops file from " + this.dropsFile);
@@ -142,13 +146,13 @@ public class Zombo extends JavaPlugin implements Listener {
 			CustomClassLoaderConstructor dataLoader = new CustomClassLoaderConstructor(ZomboPlayerInfo.class.getClassLoader());
 			CustomClassLoaderConstructor recipeLoader = new CustomClassLoaderConstructor(ZomboCraftRecipe.class.getClassLoader());
 			CustomClassLoaderConstructor waveLoader = new CustomClassLoaderConstructor(ZomboMobInfo.class.getClassLoader());
-			TypeDescription typeDesc = new TypeDescription(ZomboPlayerInfo.class);
-			typeDesc.putMapPropertyType("kills", EntityType.class, Integer.class);
-			dataLoader.addTypeDescription(typeDesc);
-			typeDesc = new TypeDescription(ZomboCraftRecipe.class);
-			typeDesc.putListPropertyType("reagents", ItemStack.class);
-			typeDesc.putListPropertyType("outputEffects", Enchantment.class);
-			recipeLoader.addTypeDescription(typeDesc);
+			TypeDescription playerTypeDesc = new TypeDescription(ZomboPlayerInfo.class);
+			playerTypeDesc.putMapPropertyType("kills", EntityType.class, Integer.class);
+			dataLoader.addTypeDescription(playerTypeDesc);
+			TypeDescription recipeTypeDesc = new TypeDescription(ZomboCraftRecipe.class);
+			recipeTypeDesc.putListPropertyType("reagents", ItemStack.class);
+			recipeTypeDesc.putListPropertyType("enchants", String.class);
+			recipeLoader.addTypeDescription(recipeTypeDesc);
 
 			this.getLogger().info("Saving data to " + this.dataFile);
 			FileWriter writer = new FileWriter(new File(getDataFolder(), this.dataFile));
@@ -419,8 +423,8 @@ public class Zombo extends JavaPlugin implements Listener {
 			ItemStack craftItem = new ItemStack(recipe.getOutputType());
 
 			//Add enchantments with random level from 1-4
-			for (Enchantment enchant : recipe.getOutputEffects()) {
-				craftItem.addEnchantment(enchant, (int)Math.floor(rand.nextFloat() * 3) + 1);
+			for (String enchantName : recipe.getEnchants()) {
+				craftItem.addEnchantment(Enchantment.getByName(enchantName), (int)Math.floor(rand.nextFloat() * 3) + 1);
 			}
 
 			player.getInventory().addItem(craftItem);
