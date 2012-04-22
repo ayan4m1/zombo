@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Random;
+import java.util.Set;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -203,10 +204,10 @@ public class Zombo extends JavaPlugin implements Listener {
 			dataStore.putPlayer(player.getName(), playerInfo);
 			
 			//Clear any chest locks that exist for this player
-			for(Location chestLoc : dataStore.getChestLocks().keySet()) {
+			Set<Location> locations = dataStore.getChestLocks().keySet();
+			for(Location chestLoc : locations) {
 				if (dataStore.getChestLock(chestLoc) == player.getName()) {
 					dataStore.removeChestLock(chestLoc);
-					//break;
 				}
 			}
 			
