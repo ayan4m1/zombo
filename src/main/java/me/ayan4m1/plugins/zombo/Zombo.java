@@ -348,9 +348,13 @@ public class Zombo extends JavaPlugin implements Listener {
 				craftItem.addEnchantment(enchant, Math.min(enchant.getMaxLevel(), (int)Math.floor(rand.nextFloat() * 3) + 1));
 			}
 
+			//Give player crafted item and deduct XP
 			player.getInventory().addItem(craftItem);
 			playerInfo.setXp(playerInfo.getXp() - recipe.getXpCost());
 			dataStore.putPlayer(player.getName(), playerInfo);
+
+			//Consume items in chest
+			chest.getInventory().clear();
 
 			player.sendMessage("You now have " + playerInfo.getXp() + " XP");
 		} else if (event.getAction().equals(Action.RIGHT_CLICK_BLOCK)) {
