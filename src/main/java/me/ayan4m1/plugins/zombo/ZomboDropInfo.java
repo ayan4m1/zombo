@@ -1,8 +1,8 @@
 package me.ayan4m1.plugins.zombo;
 
-import java.util.Random;
-
 import org.bukkit.Material;
+
+import java.util.Random;
 
 public class ZomboDropInfo {
 	private Float rate;
@@ -68,7 +68,7 @@ public class ZomboDropInfo {
 
 	/**
 	 * Whether or not the drop should be dropped
-	 * @param  Random An instance of the Random class
+	 * @param  rand An instance of the Random class
 	 * @return boolean True if drop was successful, false otherwise
 	 */
 	public boolean canDrop(Random rand) {

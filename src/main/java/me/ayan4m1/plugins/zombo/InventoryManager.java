@@ -1,18 +1,18 @@
 package me.ayan4m1.plugins.zombo;
 
-import java.util.HashMap;
-
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 
+import java.util.HashMap;
+
 public final class InventoryManager {
-	public static final void clearInventory(Player player) {
+	public static void clearInventory(Player player) {
 		player.getInventory().clear();
 	}
 
-	public static final void starterKit(Player player) {
+	public static void starterKit(Player player) {
 		InventoryManager.clearInventory(player);
 		PlayerInventory inventory = player.getInventory();
 		inventory.setArmorContents(new ItemStack[] {new ItemStack(Material.LEATHER_HELMET), new ItemStack(Material.LEATHER_CHESTPLATE)});
@@ -23,7 +23,8 @@ public final class InventoryManager {
 		inventory.addItem(new ItemStack(Material.TORCH, 10));
 	}
 
-	public static final boolean consumeReagent(Player player, Material type, Integer amount) {
+	@SuppressWarnings("unchecked")
+	public static boolean consumeReagent(Player player, Material type, Integer amount) {
 		PlayerInventory inventory = player.getInventory();
 		if (!inventory.contains(type, amount)) {
 			return false;

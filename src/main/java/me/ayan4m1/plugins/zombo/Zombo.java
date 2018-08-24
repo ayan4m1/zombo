@@ -1,15 +1,5 @@
 package me.ayan4m1.plugins.zombo;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Random;
-import java.util.Set;
-
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -31,17 +21,16 @@ import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryType;
-import org.bukkit.event.player.PlayerChangedWorldEvent;
-import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.event.player.PlayerQuitEvent;
-import org.bukkit.event.player.PlayerRespawnEvent;
+import org.bukkit.event.player.*;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.yaml.snakeyaml.TypeDescription;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.CustomClassLoaderConstructor;
+
+import java.io.*;
+import java.util.*;
 
 public class Zombo extends JavaPlugin implements Listener {
 	private final String  configFile   = "config.yml";
@@ -121,12 +110,12 @@ public class Zombo extends JavaPlugin implements Listener {
 			//First time player, give them a starter kit
 			InventoryManager.starterKit(player);
 		} else {
-			playerInfo = dataStore.getPlayerByName(player.getName());
+			playerInfo = dataStore.getPlayerByUniqueId(player.getUniqueId());
 			playerInfo.setOnline(true);
 		}
 
 		//Update player info
-		dataStore.putPlayer(player.getName(), playerInfo);
+		dataStore.putPlayer(player.getUniqueId(), playerInfo);
 		getServer().broadcastMessage(player.getName() + " joined the fight!");
 
 		getLogger().info(dataStore.getOnlinePlayers() + " online players");
@@ -145,14 +134,14 @@ public class Zombo extends JavaPlugin implements Listener {
 
 		//Mark player as offline
 		if (dataStore.containsPlayer(player.getName())) {
-			ZomboPlayerInfo playerInfo = dataStore.getPlayerByName(player.getName());
+			ZomboPlayerInfo playerInfo = dataStore.getPlayerByUniqueId(player.getUniqueId());
 			playerInfo.setOnline(false);
-			dataStore.putPlayer(player.getName(), playerInfo);
+			dataStore.putPlayer(player.getUniqueId(), playerInfo);
 			
 			//Clear any chest locks that exist for this player
 			Set<Location> locations = dataStore.getChestLocks().keySet();
 			for(Location chestLoc : locations) {
-				if (dataStore.getChestLock(chestLoc) == player.getName()) {
+				if (dataStore.getChestLock(chestLoc).equals(player.getName())) {
 					dataStore.removeChestLock(chestLoc);
 				}
 			}
@@ -170,7 +159,7 @@ public class Zombo extends JavaPlugin implements Listener {
 		if (!dataStore.containsPlayer(player.getName())) {
 			playerInfo = new ZomboPlayerInfo();
 		} else {
-			playerInfo = dataStore.getPlayerByName(player.getName());
+			playerInfo = dataStore.getPlayerByUniqueId(player.getUniqueId());
 		}
 
 		//Update online status based on event state
@@ -183,7 +172,7 @@ public class Zombo extends JavaPlugin implements Listener {
 		}
 
 		//Update online status
-		dataStore.putPlayer(player.getName(), playerInfo);
+		dataStore.putPlayer(player.getUniqueId(), playerInfo);
 		return Result.ALLOW;
 	}
 
@@ -214,15 +203,15 @@ public class Zombo extends JavaPlugin implements Listener {
 		}
 
 		Player player = event.getPlayer();
-		ZomboPlayerInfo playerInfo = dataStore.getPlayerByName(player.getName());
+		ZomboPlayerInfo playerInfo = dataStore.getPlayerByUniqueId(player.getUniqueId());
 		if (playerInfo == null) {
 			getLogger().warning("Could not find player " + player.getName() + " when handling PlayerRespawnEvent!");
 			return;
 		}
 
-		player.sendMessage("The cost of death is " + Math.floor(playerInfo.getXp() / 2) + " XP.");
-		playerInfo.setXp((int)Math.floor(playerInfo.getXp() / 2));
-		dataStore.putPlayer(player.getName(), playerInfo);
+		player.sendMessage("The cost of death is " + Math.floor(playerInfo.getXp() / 2.0) + " XP.");
+		playerInfo.setXp((int)Math.floor(playerInfo.getXp() / 2.0));
+		dataStore.putPlayer(player.getUniqueId(), playerInfo);
 
 		ItemStack[] inventory = dataStore.getTempInventoryForPlayer(event.getPlayer().getName());
 		if (inventory != null) {
@@ -266,13 +255,13 @@ public class Zombo extends JavaPlugin implements Listener {
 		if (mob.getKiller() != null) {
 			//Fetch information from data store
 			Player player = mob.getKiller();
-			ZomboPlayerInfo playerInfo = dataStore.getPlayerByName(player.getName());
+			ZomboPlayerInfo playerInfo = dataStore.getPlayerByUniqueId(player.getUniqueId());
 			ZomboMobInfo entityInfo = dataStore.getMobById(mob.getEntityId());
 
 			//Update player information
 			playerInfo.addKill(entityInfo.getType());
 			playerInfo.addXp(entityInfo.getXp() * wave);
-			dataStore.putPlayer(player.getName(), playerInfo);
+			dataStore.putPlayer(player.getUniqueId(), playerInfo);
 
 			//Send message to the player
 			mob.getKiller().sendMessage("Killed a " + mob.getType().getName() + " [+" + entityInfo.getXp() + " XP]");
@@ -300,9 +289,9 @@ public class Zombo extends JavaPlugin implements Listener {
 		if (dataStore.getMobs().isEmpty()) {
 			if (wave == maxWave) {
 				//Give XP bonus to online players
-				for (String playerName : dataStore.getPlayers().keySet()) {
-					Player msgPlayer = getServer().getPlayerExact(playerName);
-					ZomboPlayerInfo msgPlayerInfo = dataStore.getPlayerByName(playerName);
+				for (UUID playerId : dataStore.getPlayers().keySet()) {
+					Player msgPlayer = getServer().getPlayer(playerId);
+					ZomboPlayerInfo msgPlayerInfo = dataStore.getPlayerByUniqueId(playerId);
 
 					if (msgPlayer == null || msgPlayerInfo == null) {
 						continue;
@@ -339,7 +328,7 @@ public class Zombo extends JavaPlugin implements Listener {
 			Random rand = new Random();
 			Chest chest = (Chest)event.getClickedBlock().getState();
 			ZomboCraftRecipe recipe = dataStore.getCraftRecipeForInventory(chest.getInventory());
-			ZomboPlayerInfo playerInfo = dataStore.getPlayerByName(player.getName());
+			ZomboPlayerInfo playerInfo = dataStore.getPlayerByUniqueId(player.getUniqueId());
 			ItemStack craftItem = new ItemStack(recipe.getOutputType());
 
 			//Add enchantments with random level from 1-4
@@ -351,7 +340,7 @@ public class Zombo extends JavaPlugin implements Listener {
 			//Give player crafted item and deduct XP
 			player.getInventory().addItem(craftItem);
 			playerInfo.setXp(playerInfo.getXp() - recipe.getXpCost());
-			dataStore.putPlayer(player.getName(), playerInfo);
+			dataStore.putPlayer(player.getUniqueId(), playerInfo);
 
 			//Consume items in chest
 			chest.getInventory().clear();
@@ -436,7 +425,7 @@ public class Zombo extends JavaPlugin implements Listener {
 		}
 
 		if (cmd.getName().equalsIgnoreCase("zinfo")) {
-			ZomboPlayerInfo playerInfo = dataStore.getPlayerByName(player.getName());
+			ZomboPlayerInfo playerInfo = dataStore.getPlayerByUniqueId(player.getUniqueId());
 			player.sendMessage("XP: " + playerInfo.getXp());
 			player.sendMessage("Kills");
 			for(EntityType type : EntityType.values()) {
@@ -461,14 +450,14 @@ public class Zombo extends JavaPlugin implements Listener {
 		} else if (cmd.getName().equalsIgnoreCase("zwave")) {
 			player.sendMessage("Wave " + wave);
 		} else if (cmd.getName().equalsIgnoreCase("zready")) {
-			ZomboPlayerInfo playerInfo = dataStore.getPlayerByName(player.getName());
+			ZomboPlayerInfo playerInfo = dataStore.getPlayerByUniqueId(player.getUniqueId());
 			if (playerInfo == null) {
 				return false;
 			}
 
 			//Mark player as ready
 			playerInfo.setReady(true);
-			dataStore.putPlayer(player.getName(), playerInfo);
+			dataStore.putPlayer(player.getUniqueId(), playerInfo);
 
 			//Advance to the next wave if all players are ready
 			pollWave();
@@ -496,11 +485,11 @@ public class Zombo extends JavaPlugin implements Listener {
 		}
 
 		//Reset the ready state for all players
-		Set<String> playerNames = dataStore.getPlayers().keySet();
-		for(String playerName : playerNames) {
-			ZomboPlayerInfo info = dataStore.getPlayerByName(playerName);
+		Set<UUID> playerIds = dataStore.getPlayers().keySet();
+		for (UUID playerId : playerIds) {
+			ZomboPlayerInfo info = dataStore.getPlayerByUniqueId(playerId);
 			info.setReady(false);
-			dataStore.putPlayer(playerName, info);
+			dataStore.putPlayer(playerId, info);
 		}
 
 		advanceWave();
@@ -543,14 +532,14 @@ public class Zombo extends JavaPlugin implements Listener {
 			if (dataFile.length() > 0) {
 				this.getLogger().info("Loading data file from " + this.dataFile);
 
-				HashMap<String, ZomboPlayerInfo> players = (HashMap<String, ZomboPlayerInfo>)new Yaml(dataLoader).load(new FileReader(dataFile));
+				HashMap<UUID, ZomboPlayerInfo> players = (HashMap<UUID, ZomboPlayerInfo>)new Yaml(dataLoader).load(new FileReader(dataFile));
 				dataStore.setPlayers(players);
 
 				//Set online status for currently connected players
-				Integer onlineCount = 0;
-				for (String playerName : dataStore.getPlayers().keySet()) {
-					Player player = getServer().getPlayer(playerName);
-					ZomboPlayerInfo playerInfo = dataStore.getPlayerByName(playerName);
+				int onlineCount = 0;
+				for (UUID playerId : dataStore.getPlayers().keySet()) {
+					Player player = getServer().getPlayer(playerId);
+					ZomboPlayerInfo playerInfo = dataStore.getPlayerByUniqueId(playerId);
 
 					if (player == null || !player.getWorld().getName().equals(this.getWorldName())) {
 						playerInfo.setOnline(false);
@@ -560,7 +549,7 @@ public class Zombo extends JavaPlugin implements Listener {
 						getServer().broadcastMessage(player.getName() + " joined the fight!");
 					}
 
-					dataStore.putPlayer(playerName, playerInfo);
+					dataStore.putPlayer(playerId, playerInfo);
 				}
 
 				this.getLogger().info("Loaded data for " + players.size()  + " players, " + onlineCount + " are online now");
